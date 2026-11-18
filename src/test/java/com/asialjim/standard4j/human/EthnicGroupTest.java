@@ -31,7 +31,8 @@ class EthnicGroupTest {
     @DisplayName("GB/T 3304 码值对齐：01 汉族 … 56 基诺族，共 56 个民族")
     void nationalStandardCodes() {
         assertAll(
-                () -> assertEquals(56, EthnicGroup.values().length - 1),
+                () -> assertEquals(56, java.util.Arrays.stream(EthnicGroup.values())
+                        .filter(g -> g.code().matches("\\d{2}")).count()),
                 () -> assertEquals(EthnicGroup.HAN, EthnicGroup.of("01")),
                 () -> assertEquals(EthnicGroup.MONGOL, EthnicGroup.of("02")),
                 () -> assertEquals(EthnicGroup.HUI, EthnicGroup.of("03")),
@@ -62,6 +63,21 @@ class EthnicGroupTest {
         assertAll(
                 () -> assertEquals(EthnicGroup.UNKNOWN, EthnicGroup.unknown()),
                 () -> assertEquals("-", EthnicGroup.UNKNOWN.code())
+        );
+    }
+
+    @Test
+    @DisplayName("世界族裔：非国标扩展码 X- 前缀，legacyCode 保留旧三字码")
+    void worldEthnicityEntries() {
+        assertAll(
+                () -> assertEquals(EthnicGroup.ARAB, EthnicGroup.of("X-ARA")),
+                () -> assertEquals(EthnicGroup.JAPANESE, EthnicGroup.of("X-JPN")),
+                () -> assertEquals(EthnicGroup.ARAB, EthnicGroup.ofLegacy("ARA")),
+                () -> assertEquals(EthnicGroup.JEWISH, EthnicGroup.ofLegacy("JEW")),
+                () -> assertEquals(63, java.util.Arrays.stream(EthnicGroup.values())
+                        .filter(g -> g.code().startsWith("X-")).count()),
+                // 1 UNKNOWN + 56 GB/T 3304 + 63 世界族裔
+                () -> assertEquals(120, EthnicGroup.values().length)
         );
     }
 

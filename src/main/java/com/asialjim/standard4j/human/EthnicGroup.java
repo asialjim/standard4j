@@ -33,7 +33,9 @@ import java.util.Optional;
  *     <li>{@link #legacyCode()} 为旧库自定义三字码（<b>非标准</b>，仅供历史数据迁移），标准场景一律使用
  *         GB/T 3304 数字码；旧库三字码存在重复（{@code EVE} 同时用于鄂温克族与鄂伦春族、
  *         {@code JIN} 同时用于京族与基诺族），本枚举已消歧：鄂伦春族 {@code ELC}、基诺族 {@code JNO}；</li>
- *     <li>旧库中的世界族裔（阿拉伯人、玛雅人等）不属 GB/T 3304，本枚举不收录。</li>
+ *     <li>除 GB/T 3304 的 56 个中国民族外，本枚举还收录旧库中的<b>世界主要族裔</b>（非国标扩展）：
+ *         其 {@link #code()} 统一加 {@code X-} 前缀标识（如 {@code X-ARA} 阿拉伯人），与 GB 数字码明确区分；
+ *         {@link #legacyCode()} 保留旧库三字码；</li>
  * </ul>
  *
  * @author <a href="mailto:asialjim@hotmail.com">Asial Jim</a>
@@ -213,6 +215,197 @@ public enum EthnicGroup implements Code {
 
     /** 基诺族（GB/T 3304: 56；旧库三字码误用 JIN（与京族重复），消歧为 JNO） */
     JINO("56", "基诺族", "Jino", "JNO"),
+
+    // ---------------- 世界族裔（非国标扩展：code 统一加 X- 前缀） ----------------
+
+    /** 阿拉伯人（非国标扩展码 X-ARA） */
+    ARAB("X-ARA", "阿拉伯人", "Arab", "ARA"),
+
+    /** 印度人（非国标扩展码 X-IND） */
+    INDIAN("X-IND", "印度人", "Indian", "IND"),
+
+    /** 日本人（非国标扩展码 X-JPN） */
+    JAPANESE("X-JPN", "日本人", "Japanese", "JPN"),
+
+    /** 旁遮普人（非国标扩展码 X-PUN） */
+    PUNJABI("X-PUN", "旁遮普人", "Punjabi", "PUN"),
+
+    /** 孟加拉人（非国标扩展码 X-BEN） */
+    BENGALI("X-BEN", "孟加拉人", "Bengali", "BEN"),
+
+    /** 贾特人（非国标扩展码 X-JAT） */
+    JAT("X-JAT", "贾特人", "Jat", "JAT"),
+
+    /** 土耳其人（非国标扩展码 X-TUR） */
+    TURK("X-TUR", "土耳其人", "Turk", "TUR"),
+
+    /** 普什图人（非国标扩展码 X-PAS） */
+    PASHTUN("X-PAS", "普什图人", "Pashtun", "PAS"),
+
+    /** 德意志人（非国标扩展码 X-GER） */
+    GERMAN("X-GER", "德意志人", "German", "GER"),
+
+    /** 法兰西人（非国标扩展码 X-FRA） */
+    FRENCH("X-FRA", "法兰西人", "French", "FRA"),
+
+    /** 不列颠人（非国标扩展码 X-GBR） */
+    BRITISH("X-GBR", "不列颠人", "British", "GBR"),
+
+    /** 意大利人（非国标扩展码 X-ITA） */
+    ITALIAN("X-ITA", "意大利人", "Italian", "ITA"),
+
+    /** 西班牙人（非国标扩展码 X-ESP） */
+    SPANISH("X-ESP", "西班牙人", "Spanish", "ESP"),
+
+    /** 墨西哥人（非国标扩展码 X-MEX） */
+    MEXICAN("X-MEX", "墨西哥人", "Mexican", "MEX"),
+
+    /** 美利坚人（非国标扩展码 X-USA） */
+    AMERICAN("X-USA", "美利坚人", "American", "USA"),
+
+    /** 巴西人（非国标扩展码 X-BRA） */
+    BRAZILIAN("X-BRA", "巴西人", "Brazilian", "BRA"),
+
+    /** 豪萨-富拉尼人（非国标扩展码 X-NGA） */
+    HAUSA_FULANI("X-NGA", "豪萨-富拉尼人", "Hausa-Fulani", "NGA"),
+
+    /** 约鲁巴人（非国标扩展码 X-YOR） */
+    YORUBA("X-YOR", "约鲁巴人", "Yoruba", "YOR"),
+
+    /** 伊博人（非国标扩展码 X-IGB） */
+    IGBO("X-IGB", "伊博人", "Igbo", "IGB"),
+
+    /** 索马里人（非国标扩展码 X-SOM） */
+    SOMALI("X-SOM", "索马里人", "Somali", "SOM"),
+
+    /** 阿姆哈拉人（非国标扩展码 X-AMH） */
+    AMHARA("X-AMH", "阿姆哈拉人", "Amhara", "AMH"),
+
+    /** 奥罗莫人（非国标扩展码 X-ORO） */
+    OROMO("X-ORO", "奥罗莫人", "Oromo", "ORO"),
+
+    /** 土库曼人（非国标扩展码 X-TKM） */
+    TURKMEN("X-TKM", "土库曼人", "Turkmen", "TKM"),
+
+    /** 柯尔克孜人（非国标扩展码 X-KGZ；中国境内柯尔克孜族见 GB/T 3304: 29） */
+    KYRGYZ("X-KGZ", "柯尔克孜人", "Kyrgyz", "KGZ"),
+
+    /** 布里亚特人（非国标扩展码 X-BRT） */
+    BURYAT("X-BRT", "布里亚特人", "Buryat", "BRT"),
+
+    /** 毛利人（非国标扩展码 X-MAO） */
+    MAORI("X-MAO", "毛利人", "Maori", "MAO"),
+
+    /** 澳大利亚原住民（非国标扩展码 X-ABO） */
+    ABORIGINAL("X-ABO", "澳大利亚原住民", "Aboriginal", "ABO"),
+
+    /** 因纽特人（非国标扩展码 X-INU） */
+    INUIT("X-INU", "因纽特人", "Inuit", "INU"),
+
+    /** 萨米人（非国标扩展码 X-SAMI；旧三字码为四字符） */
+    SAMI("X-SAMI", "萨米人", "Sami", "SAMI"),
+
+    /** 柏柏尔人（非国标扩展码 X-BRB） */
+    BERBER("X-BRB", "柏柏尔人", "Berber", "BRB"),
+
+    /** 富拉尼人（非国标扩展码 X-FUL） */
+    FULANI("X-FUL", "富拉尼人", "Fulani", "FUL"),
+
+    /** 祖鲁人（非国标扩展码 X-ZUL） */
+    ZULU("X-ZUL", "祖鲁人", "Zulu", "ZUL"),
+
+    /** 科萨人（非国标扩展码 X-XHO） */
+    XHOSA("X-XHO", "科萨人", "Xhosa", "XHO"),
+
+    /** 索托人（非国标扩展码 X-SOT） */
+    SOTHO("X-SOT", "索托人", "Sotho", "SOT"),
+
+    /** 茨瓦纳人（非国标扩展码 X-TSW） */
+    TSWANA("X-TSW", "茨瓦纳人", "Tswana", "TSW"),
+
+    /** 斯威士人（非国标扩展码 X-SWA） */
+    SWAZI("X-SWA", "斯威士人", "Swazi", "SWA"),
+
+    /** 绍纳人（非国标扩展码 X-SHO） */
+    SHONA("X-SHO", "绍纳人", "Shona", "SHO"),
+
+    /** 恩德贝勒人（非国标扩展码 X-NDE） */
+    NDEBELE("X-NDE", "恩德贝勒人", "Ndebele", "NDE"),
+
+    /** 卢奥人（非国标扩展码 X-LUO） */
+    LUO("X-LUO", "卢奥人", "Luo", "LUO"),
+
+    /** 基库尤人（非国标扩展码 X-KKY） */
+    KIKUYU("X-KKY", "基库尤人", "Kikuyu", "KKY"),
+
+    /** 卡伦金人（非国标扩展码 X-KLN） */
+    KALENJIN("X-KLN", "卡伦金人", "Kalenjin", "KLN"),
+
+    /** 马赛人（非国标扩展码 X-MAS） */
+    MAASAI("X-MAS", "马赛人", "Maasai", "MAS"),
+
+    /** 阿马齐格人（非国标扩展码 X-AMZ） */
+    AMAZIGH("X-AMZ", "阿马齐格人", "Amazigh", "AMZ"),
+
+    /** 图阿雷格人（非国标扩展码 X-TUA） */
+    TUAREG("X-TUA", "图阿雷格人", "Tuareg", "TUA"),
+
+    /** 贝都因人（非国标扩展码 X-BEO） */
+    BEDOUIN("X-BEO", "贝都因人", "Bedouin", "BEO"),
+
+    /** 丁卡人（非国标扩展码 X-DIN） */
+    DINKA("X-DIN", "丁卡人", "Dinka", "DIN"),
+
+    /** 努尔人（非国标扩展码 X-NUER；旧三字码为四字符） */
+    NUER("X-NUER", "努尔人", "Nuer", "NUER"),
+
+    /** 阿兹特克人（非国标扩展码 X-AZT） */
+    AZTEC("X-AZT", "阿兹特克人", "Aztec", "AZT"),
+
+    /** 玛雅人（非国标扩展码 X-MAY） */
+    MAYA("X-MAY", "玛雅人", "Maya", "MAY"),
+
+    /** 印加人（非国标扩展码 X-INC） */
+    INCA("X-INC", "印加人", "Inca", "INC"),
+
+    /** 克丘亚人（非国标扩展码 X-QUE） */
+    QUECHUA("X-QUE", "克丘亚人", "Quechua", "QUE"),
+
+    /** 艾马拉人（非国标扩展码 X-AYM） */
+    AYMARA("X-AYM", "艾马拉人", "Aymara", "AYM"),
+
+    /** 瓜拉尼人（非国标扩展码 X-GUA） */
+    GUARANI("X-GUA", "瓜拉尼人", "Guarani", "GUA"),
+
+    /** 马普切人（非国标扩展码 X-MAP） */
+    MAPUCHE("X-MAP", "马普切人", "Mapuche", "MAP"),
+
+    /** 阿帕奇人（非国标扩展码 X-APA） */
+    APACHE("X-APA", "阿帕奇人", "Apache", "APA"),
+
+    /** 纳瓦霍人（非国标扩展码 X-NAV） */
+    NAVAJO("X-NAV", "纳瓦霍人", "Navajo", "NAV"),
+
+    /** 切诺基人（非国标扩展码 X-CHC） */
+    CHEROKEE("X-CHC", "切诺基人", "Cherokee", "CHC"),
+
+    /** 苏族人（非国标扩展码 X-SIO） */
+    SIOUX("X-SIO", "苏族人", "Sioux", "SIO"),
+
+    /** 克里人（非国标扩展码 X-CRE） */
+    CREE("X-CRE", "克里人", "Cree", "CRE"),
+
+    /** 罗姆人（非国标扩展码 X-ROM） */
+    ROMANI("X-ROM", "罗姆人", "Romani", "ROM"),
+
+    /** 亚美尼亚人（非国标扩展码 X-ARM） */
+    ARMENIAN("X-ARM", "亚美尼亚人", "Armenian", "ARM"),
+
+    /** 库尔德人（非国标扩展码 X-KUR） */
+    KURDISH("X-KUR", "库尔德人", "Kurdish", "KUR"),
+
+    /** 犹太人（非国标扩展码 X-JEW） */
+    JEWISH("X-JEW", "犹太人", "Jewish", "JEW"),
     ;
 
     /** GB/T 3304 标准码 */
