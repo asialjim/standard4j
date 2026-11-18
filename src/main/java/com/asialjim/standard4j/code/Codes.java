@@ -16,6 +16,9 @@
 
 package com.asialjim.standard4j.code;
 
+import com.asialjim.standard4j.exception.BusinessException;
+import com.asialjim.standard4j.exception.SystemResCode;
+
 import java.util.Optional;
 
 /**
@@ -33,9 +36,7 @@ public abstract class Codes {
     }
 
     /**
-     * 严格查找：未匹配抛 {@link IllegalArgumentException}。
-     *
-     * <p>TODO：{@code exception} 包落地后替换为统一的业务异常（{@code BusinessCode} 口径）。</p>
+     * 严格查找：未匹配抛 {@link BusinessException}（{@link SystemResCode#UNMATCHED_CODE}，HTTP 400）。
      *
      * @param values 字典枚举全量值
      * @param code   码值或枚举常量名（不区分大小写，容忍首尾空白）
@@ -44,7 +45,8 @@ public abstract class Codes {
      */
     public static <T extends Code> T of(T[] values, String code) {
         return ofNullable(values, code)
-                .orElseThrow(() -> new IllegalArgumentException("未知的字典码值: [" + code + "]"));
+                .orElseThrow(() -> new BusinessException(
+                        SystemResCode.UNMATCHED_CODE, "未知的字典码值: [" + code + "]"));
     }
 
     /**

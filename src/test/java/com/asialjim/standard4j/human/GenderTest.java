@@ -17,6 +17,8 @@
 package com.asialjim.standard4j.human;
 
 import com.asialjim.standard4j.code.CodeView;
+import com.asialjim.standard4j.exception.BusinessException;
+import com.asialjim.standard4j.exception.SystemResCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -49,10 +51,15 @@ class GenderTest {
     }
 
     @Test
-    @DisplayName("严格查找：未匹配抛 IllegalArgumentException")
+    @DisplayName("严格查找：未匹配抛 BusinessException（SystemResCode.UNMATCHED_CODE）")
     void ofThrowsOnUnknown() {
-        assertThrows(IllegalArgumentException.class, () -> Gender.of("5"));
-        assertThrows(IllegalArgumentException.class, () -> Gender.of(null));
+        assertAll(
+                () -> {
+                    BusinessException ex = assertThrows(BusinessException.class, () -> Gender.of("5"));
+                    assertEquals(SystemResCode.UNMATCHED_CODE.code(), ex.code());
+                },
+                () -> assertThrows(BusinessException.class, () -> Gender.of(null))
+        );
     }
 
     @Test
