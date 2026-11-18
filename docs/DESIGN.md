@@ -19,9 +19,19 @@ public interface Code {
 
 - `of(String code)` —— 严格匹配，找不到抛标准异常；
 - `ofNullable(String code)` —— 返回 `Optional`；
+- `ofOrDefault(String code)` —— 宽容解析，未匹配返回 `UNKNOWN`；
 - 枚举常量名 + code 都不区分大小写。
 
 数据策略：小字典纯封闭枚举；大数据集常用项枚举 + 冷门项文件驱动（classpath JSON，可注册自定义文件），统一 Facade 查找。
+
+**未知码值策略（已定）**：
+
+- 每个封闭字典枚举**必须包含 `UNKNOWN`（未提供/未知）项**；
+- 两套查找口径并存，语义分开：
+  - `of(code)` —— **严格**查找，未匹配抛标准异常（用于必须合法的场景）；
+  - `ofOrDefault(code)` —— **宽容**解析，未匹配返回 `UNKNOWN`（用于展示、反序列化兜底）；
+- 反序列化约定：遇到未知码值**落 `UNKNOWN`，不允许抛异常炸掉整条记录**；通用 Jackson 反序列化器后续以可选模块提供，本库本体只定约定；
+- 每个枚举提供 `unknown()` 静态访问器；`UNKNOWN` 的 code 值由各字典依据其标准定义（如性别 GB/T 2261.1 的 `0=未知`、`9=未说明`），无标准依据的统一用 `"-"`。
 
 ## 1bis. 证照类型标准（`certificate`）
 
