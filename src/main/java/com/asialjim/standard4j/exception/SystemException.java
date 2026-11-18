@@ -17,22 +17,56 @@
 package com.asialjim.standard4j.exception;
 
 /**
- * 系统异常 —— 系统内部错误，不应向用户暴露细节。
+ * 系统异常基类 —— 系统内部错误，直接继承 {@link RuntimeException}（与 {@link BusinessException} 平级），
+ * 不应向用户暴露细节。
  *
  * @author <a href="mailto:asialjim@hotmail.com">Asial Jim</a>
  * @since 1.0.0
  */
-public class SystemException extends BusinessException {
+public class SystemException extends RuntimeException implements ResCode {
+
+    private final ResCode resCode;
 
     public SystemException(ResCode resCode) {
-        super(resCode);
+        this(resCode, resCode.msg());
     }
 
     public SystemException(ResCode resCode, String message) {
-        super(resCode, message);
+        super(message);
+        this.resCode = resCode;
     }
 
     public SystemException(ResCode resCode, String message, Throwable cause) {
-        super(resCode, message, cause);
+        super(message, cause);
+        this.resCode = resCode;
+    }
+
+    /**
+     * 异常所携带的原始错误码定义
+     *
+     * @return {@link ResCode}
+     */
+    public ResCode resCode() {
+        return this.resCode;
+    }
+
+    @Override
+    public String code() {
+        return this.resCode.code();
+    }
+
+    @Override
+    public String label() {
+        return this.resCode.label();
+    }
+
+    @Override
+    public String msg() {
+        return getMessage();
+    }
+
+    @Override
+    public int status() {
+        return this.resCode.status();
     }
 }

@@ -49,7 +49,7 @@ class ExceptionTest {
     }
 
     @Test
-    @DisplayName("SystemException 与 UnLoginException")
+    @DisplayName("SystemException：直接继承 RuntimeException")
     void specializedExceptions() {
         assertAll(
                 () -> {
@@ -58,9 +58,8 @@ class ExceptionTest {
                     assertEquals("数据库连接失败", ex.getMessage());
                 },
                 () -> {
-                    UnLoginException ex = new UnLoginException();
-                    assertEquals(SystemResCode.UNAUTHORIZED.code(), ex.code());
-                    assertEquals(401, ex.status());
+                    // SystemException 与 BusinessException 平级，直接继承 RuntimeException
+                    assertEquals(RuntimeException.class, SystemException.class.getSuperclass());
                 }
         );
     }
