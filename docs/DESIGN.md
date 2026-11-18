@@ -21,15 +21,7 @@ public interface Code {
 - `ofNullable(String code)` —— 返回 `Optional`；
 - 枚举常量名 + code 都不区分大小写。
 
-对齐映射（旧 commons-common → 新标准）：
-
-| 字典 | 旧实现 | 新标准依据 |
-|---|---|---|
-| 性别 `Gender` | 自定义 `0=女 1=男`（**有 bug：码值与名称对调**） | **GB/T 2261.1**：`0`=未知、`1`=男、`2`=女、`9`=未说明 |
-| 民族 `Nationality`（命名误导，实为民族） | 自定义三字码 `HAN` 等 | **GB/T 3304** 2 位数字码（01 汉族…），自定义三字码可作为辅助别名保留 |
-| 国家/地区 `CountryOrDict` | 电话区号当主键 `0086` + alpha-3 | **ISO 3166-1**：alpha-2 为主键，另存 alpha-3、数字码、电话区号、中英文名 |
-| 证件类型 `IdCardType` | 自定义 `"01".."13","99"` | **无 GB 国标覆盖证件类型代码**。主码采用 **GA/T 2000.156-2016**《公安信息代码 第156部分：常用证件代码》（覆盖面最全、与旧码表一致，待持全文核对码值）；内置 **JR/T 0160-2018**（金融 DM001）别名码；预留 `certificateTypeCode` 关联电子证照目录代码（可空）。每项自带脱敏保留位数 |
-| 证照类型 `certificate` | 无 | **GB/T 36901~36904-2018 电子证照系列为准**（目录代码、证照标识规则）。常用项封闭枚举 + 冷门项文件数据驱动 |
+数据策略：小字典纯封闭枚举；大数据集常用项枚举 + 冷门项文件驱动（classpath JSON，可注册自定义文件），统一 Facade 查找。
 
 ## 1bis. 证照类型标准（`certificate`）
 
@@ -40,7 +32,6 @@ public interface Code {
   - 枚举内置高频证照项（营业执照、居民户口簿、结婚证、学历证书等）；
   - 冷门/行业专属证照由目录文件补充：默认内置 classpath JSON（GB/T 36901 目录代码），使用方可注册自定义目录文件；
   - 统一经 Facade 查找：`of(code)` 先查枚举、再查文件目录，别名解析同理，对外无感知。
-- **该模式为全库通用**：小字典（性别、民族、证件类型等）纯封闭枚举；大数据集（行政区划 GB/T 2260 市/县级、证照目录）常用项枚举 + 文件驱动兜底。
 - 与 `IdCardType`（身份证件类型）是两个正交标准：证件类型枚举项通过可空的 `certificateTypeCode` 字段关联证照目录代码。
 
 ## 2. 业务异常体系（`exception`）
@@ -66,25 +57,118 @@ public interface ResCode {
 
 ## 3. 命名标准（`entity`）
 
-只定义规范接口/抽象类（"这类实体应有的字段"），不含实现：
+### 3.1 业务字段规范（全部以接口落实，getter/setter 契约）
 
-- **自然人**：姓名（姓/名/曾用名）、性别、出生日期、民族、婚姻状况……
-- **证件**：证件类型、证件号码、证件名称、发证机关、有效期起止。
-- **联系方式**：手机号、电话、邮箱；**地址**：省/市/区县/详址（与 GB/T 2260 联动）。
-- **组织/法人**：名称、统一社会信用代码、法定代表人。
+**所有字段命名标准一律用接口限定**（不用抽象类），粒度最小化、可组合，实体按需实现：
 
-边界：校验规则的定义归 standard4j；脱敏处理归 sensitive4j。
+- `Nameable` —— 姓名、曾用名
+- `Genderable` —— 性别（类型绑定 `Gender` 枚举，非 String）
+- `BirthDateable` —— 出生日期（`LocalDate`）；年龄为推导字段（按周岁），不落存储
+- `Ethnicable` —— 民族（绑定 `EthnicGroup`）
+- `Certifiable` —— 证件类型（绑定 `IdCardType`）、证件号码、证件名称、发证机关、有效期起止
+- `Contactable` —— 手机号、座机、邮箱
+- `Addressable` —— 省/市/区县代码（绑定区划字典）+ 详址
+- `Organizationable` —— 组织名称、统一社会信用代码、法定代表人
 
-## 4. 区域标准（`region`）
+硬规则：
+1. 接口可组合：自然人 = `Nameable + Genderable + BirthDateable + Certifiable + Contactable + Addressable + Auditable + ...`，按需拼装，规避抽象类单继承限制；
+2. 字段的 Java 类型直接绑定标准字典枚举（`Gender`/`IdCardType`/`EthnicGroup`/区划代码），码值合法性由类型系统保证；
+3. getter/setter 命名即标准：跨项目同名字段同语义，序列化/映射天然对齐。
+
+### 3.2 实体元数据标准（接口限定，getter/setter）
+
+通用技术字段不用"扩展类"，而是用**带 getter/setter 的接口**限定——任何实体实现接口即获得标准字段契约：
+
+```java
+public interface Auditable {                          // 审计字段
+    String getCreatedBy();  void setCreatedBy(String createdBy);
+    LocalDateTime getCreatedAt();  void setCreatedAt(LocalDateTime createdAt);
+    String getUpdatedBy();  void setUpdatedBy(String updatedBy);
+    LocalDateTime getUpdatedAt();  void setUpdatedAt(LocalDateTime updatedAt);
+}
+public interface Versionable {                        // 乐观锁版本
+    Long getVersion();  void setVersion(Long version);
+}
+public interface SoftDeletable {                      // 逻辑删除
+    Boolean getDeleted();  void setDeleted(Boolean deleted);
+}
+public interface LifeCycle {                          // 生命周期状态
+    LifeCycleState getState();  void setState(LifeCycleState state);
+}
+public interface Treeable {                           // 树形层级（行政区划/组织树）
+    String getPath();  void setPath(String path);
+    Integer getLevel();  void setLevel(Integer level);
+    String getParentId();  void setParentId(String parentId);
+}
+```
+
+- `LifeCycleState`：通用生命周期字典（草稿/生效/停用/注销），实现 `Code`；
+- 统一字段命名（`createdAt/createdBy/...`），杜绝各项目各写一套；
+- **业务单号格式规范**：`前缀 + 日期 + 序列`（与错误码规范同族），单号前缀同样注册为标准字典。
+
+## 4. 校验器标准（`validate`）
+
+统一校验器接口（只判断与给原因，不做脱敏）：
+
+```java
+public interface Validator<T> {
+    ValidationResult validate(T value);   // 通过/不通过 + 错误原因
+}
+```
+
+内置校验器清单：
+
+| 校验器 | 依据 |
+|---|---|
+| 公民身份号码（18 位 + MOD 11-2 校验码 + 出生日期段） | **GB 11643-1999** |
+| 统一社会信用代码（18 位 + 校验位） | **GB 32100-2015** |
+| 组织机构代码（旧 9 位 + 校验位） | **GB 11714-1997** |
+| 国际电话号码模型（国家码 + 号码，格式规范） | **ITU-T E.164** |
+| 银行卡号（Luhn 算法 + BIN） | **ISO/IEC 7812** |
+| 中国手机号（11 位 + 号段合法性，与运营商字典联动） | 工信部号段表 |
+| 邮箱、车牌号、港澳台证件号格式 | 自定 |
+
+## 5. 金额标准（`money`）
+
+- `Money` 模型：`BigDecimal amount` + `Currency`（ISO 4217 字典），**不可变**；
+- 硬性规定：**库内及使用规范一律不得用 double/float 表示金额**；
+- 最小单位（分/最小币值单位）与展示格式的转换约定。
+
+## 6. 计量单位标准（`unit`）
+
+- 计量单位字典与换算：**GB 3100/3101/3102**（国际单位制及使用规则）；
+- 常用领域单位（质量、长度、面积、体积、存储容量等）封闭枚举 + 冷门文件驱动；
+- 统一 `Unit` 模型：code、名称、量纲（dimension）、换算基准。
+
+## 7. 区域标准（`region`）
 
 - 国家/地区：ISO 3166-1 alpha-2（主键）+ alpha-3 + 数字码 + 电话区号 + 中英文名。
-- 行政区划：GB/T 2260 省市区县（6 位）、GB/T 10114 乡镇级；**数据逐年变化，需版本化更新机制**（内嵌枚举 + 后续数据源接口）。
+- 行政区划：GB/T 2260 省市区县（6 位）、GB/T 10114 乡镇级；**数据逐年变化**：省级封闭枚举 + 市/县级文件驱动，支持版本化更新。
 
-## 5. 国际化（`i18n`）
+## 8. 国际化（`i18n`）
 
-- 语言 ISO 639-1、货币 ISO 4217、时区 IANA、Locale 约定。
+- 语言 ISO 639-1、货币 ISO 4217（含货币符号、最小单位）、时区 IANA、Locale 约定。
 
-## 6. 脱敏规则接口（`sensitive`）
+## 9. 人本字典（`human`）与行业字典
+
+纯封闭枚举（均为小字典）：
+
+| 字典 | 依据 |
+|---|---|
+| 性别 | **GB/T 2261.1**：`0`=未知、`1`=男、`2`=女、`9`=未说明 |
+| 婚姻状况 | **GB/T 2261.2** |
+| 政治面貌 | **GB/T 4762** |
+| 民族 | **GB/T 3304**（2 位数字码；旧三字码降为辅助别名） |
+| 学历 | **GB/T 4658** |
+| 学位 | 自定/现行学位授予口径 |
+| 健康状况 | 自定 |
+| 国籍/国家 | ISO 3166-1（归 `region`，`human` 引用） |
+| 证件类型 | **GA/T 2000.156-2016** 主码 + **JR/T 0160-2018**（金融 DM001）内置别名 + `certificateTypeCode` 关联证照目录（可空）+ 脱敏保留位数 |
+| 运营商 | 自定（移动/联通/电信/广电，与手机号校验联动） |
+| 行业 | **GB/T 4754** 国民经济行业分类：常用类目枚举 + 全量文件驱动 |
+| 职业 | **GB/T 6565** 职业分类：常用枚举 + 文件驱动 |
+
+## 10. 脱敏规则接口（`sensitive`）
 
 接口在 standard4j，实现（含旧 `SensitiveUtils` 算法）在 sensitive4j：
 
@@ -104,7 +188,7 @@ public interface Masker {                    // SPI；standard4j 内置 no-op �
 - 掩码字符默认 `*`；
 - 旧算法参考：身份证 6/4、手机号 3/4、中文姓名按长度（2 字掩 1，3 字以上首尾各留 1）。
 
-## 7. 从 commons-common 的借鉴清单
+## 11. 从 commons-common 的借鉴清单
 
 借鉴（设计）：`ResCode`、`BusinessException`/`SystemException`/`UnLoginException`/`SystemResCode`、`IdCardType`（含脱敏元数据）、`CountryOrDict`、民族字典、`SensitiveUtils` 算法、pom 依赖坐标（commons-lang3/collections4/io、Jackson 3 `tools.jackson.*`、jakarta、Lombok）。
 
@@ -114,11 +198,11 @@ public interface Masker {                    // SPI；standard4j 内置 no-op �
 3. `ResCode` 机翻 javadoc → 全部重写；
 4. Spring Boot 强耦合（spring.factories/自动装配）→ 不迁移，standard4j 保持零框架依赖。
 
-不迁移：`App/CommonBean`、`event`、`MamsSession*`、`CacheNameAndTTL*`（属 util4j/cache4j/web4j 职责）。
+不迁移：`App/CommonBean`、`event`、`MamsSession*`、`CacheNameAndTTL*`（运行时/框架能力，非本库职责）。
 
-## 8. 待定项
+## 12. 待定项
 
-- [ ] 统一响应体 `Result` 与分页模型的归属（standard4j vs util4j）；
-- [x] ~~代码表数据维护~~ **已定**：常用项封闭枚举 + 冷门项文件数据驱动（classpath JSON，可注册自定义文件）；小字典纯枚举，大数据集（GB/T 2260 市/县级、证照目录）枚举 + 文件兜底；
-- [ ] 证件类型代码：主码 GA/T 2000.156-2016（无 GB 国标），需持标准全文核对旧码值；JR/T 0160-2018 DM001 别名码内置；其他行业标准经 AliasTable SPI 扩展；公民身份号码校验（GB 11643-1999）单独实现；
-- [ ] 平台标准 / 平台应用标准的具体定义（待需求方澄清）。
+- [ ] 统一响应体 `Result` 与分页模型的归属（standard4j 或 util4j）；
+- [ ] 证件类型代码：主码 GA/T 2000.156-2016（无 GB 国标），需持标准全文核对旧码值；
+- [ ] 平台标准 / 平台应用标准的具体定义（待需求方澄清）；
+- [ ] 日期/时间表述约定（存储时区、年龄周岁计算规范）——候选，未纳入范围。
