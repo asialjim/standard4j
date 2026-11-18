@@ -2,7 +2,7 @@
 
 以 Java 语言定义的**开发标准库**。这里的"标准"不是语言标准库，而是把业务开发中反复出现的各类标准沉淀为可复用代码：行政代码、国家/民族/性别等字典代码、证件与证照标准、业务异常体系、命名标准（实体字段规范）、脱敏规则接口、平台标准等。
 
-> 当前状态：**设计定稿，核心已落地**——`code`/`exception`/`human`/`region`/`i18n`/`money` 已实现，`entity`/`sensitive`/`validate`/`unit` 待实现。详细设计见 [docs/DESIGN.md](docs/DESIGN.md)。
+> 当前状态：**设计定稿，核心已落地**——`code`/`exception`/`human`/`region`/`i18n`/`money`/`entity`/`sensitive` 已实现，`validate`/`unit`/`certificate`/`platform` 待实现。详细设计见 [docs/DESIGN.md](docs/DESIGN.md)。
 
 ## 标准清单
 

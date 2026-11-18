@@ -132,17 +132,19 @@ public interface Versionable {                        // 乐观锁版本
 public interface SoftDeletable {                      // 逻辑删除
     Boolean getDeleted();  void setDeleted(Boolean deleted);
 }
-public interface LifeCycle {                          // 生命周期状态
-    LifeCycleState getState();  void setState(LifeCycleState state);
+public interface LifeCycle<S extends Code> {          // 生命周期状态（状态字典由业务方定义）
+    S getState();  void setState(S state);
 }
 public interface Treeable {                           // 树形层级（行政区划/组织树）
-    String getPath();  void setPath(String path);
-    Integer getLevel();  void setLevel(Integer level);
+    String getPath();  void setPath(String path);     // "/440000/440300/440304"，含自身
+    Integer getLevel();  void setLevel(Integer level); // 从 1 起计，顶级为 1
     String getParentId();  void setParentId(String parentId);
 }
 ```
 
-- `LifeCycleState`：通用生命周期字典（草稿/生效/停用/注销），实现 `Code`；
+- **生命周期状态不内置字典**：通用状态在不同业务域语义差异过大，`LifeCycle<S extends Code>` 由业务方定义状态枚举绑定，码值合法性由类型系统保证；
+- `BirthDateable` 提供周岁推导：`ageOn(LocalDate)` / `age()` 返回 `OptionalInt`，规则为"未过生日不加岁"，2 月 29 日出生者平年按 2 月 28 日计；
+- `Certifiable` 提供 `certificateValidOn(LocalDate)`：起止日均有效，`validTo` 为空视为长期有效；
 - 统一字段命名（`createdAt/createdBy/...`），杜绝各项目各写一套；
 - **业务单号格式规范**：`前缀 + 日期 + 序列`（与错误码规范同族），单号前缀同样注册为标准字典。
 
@@ -225,20 +227,26 @@ public interface Validator<T> {
 接口在 standard4j，实现（含旧 `SensitiveUtils` 算法）在 sensitive4j：
 
 ```java
-public interface MaskRule extends Code { }   // 规则标识 = 字典项，含掩码元数据
-public interface Maskable {                  // 任意对象声明"我该怎么脱敏"
-    MaskRule maskRule();                     // null = 不脱敏
-    String rawValue();
+public interface MaskRule extends Code {     // 规则标识 = 字典项，含掩码元数据
+    int sensitiveLeft();                     // 左侧保留字符数
+    int sensitiveRight();                    // 右侧保留字符数
+    default char maskChar() { return '*'; }  // 掩码字符
 }
-public interface Masker {                    // SPI；standard4j 内置 no-op 默认实现
-    String mask(String rawValue, MaskRule rule);
+public interface Maskable {                  // 任意对象声明"我该怎么脱敏"
+    String rawValue();
+    MaskRule maskRule();                     // null = 不脱敏
+    default String maskedValue(Masker masker) { ... }  // 空值/null 规则/不支持 均原样返回
+}
+public interface Masker {                    // SPI；standard4j 内置 no-op 兜底 Masker.NONE
     boolean supports(MaskRule rule);
+    String mask(String rawValue, MaskRule rule);
 }
 ```
 
-- 规则元数据（保留位数/掩码位数）定义在 `MaskRule` 上，沿用旧 `IdCardType.sensitiveLeft/sensitiveRight` 模式；
+- 规则元数据（保留位数/掩码字符）定义在 `MaskRule` 上，沿用旧 `IdCardType.sensitiveLeft/sensitiveRight` 模式；
 - 掩码字符默认 `*`；
-- 旧算法参考：身份证 6/4、手机号 3/4、中文姓名按长度（2 字掩 1，3 字以上首尾各留 1）。
+- 旧算法参考：身份证 6/4、手机号 3/4、中文姓名按长度（2 字掩 1，3 字以上首尾各留 1）；
+- 真实算法在 sensitive4j：standard4j 只带 `Masker.NONE`（原样返回），未装配实现时不会中断业务链路。
 
 ## 11. 从 commons-common 的借鉴清单
 

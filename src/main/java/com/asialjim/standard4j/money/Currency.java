@@ -33,7 +33,7 @@ import java.util.Optional;
  * 非标准码）；{@link #XXX}（数字码 999）是 ISO 4217 官方定义的"无货币"代码，属于标准码表的一部分，
  * 两者不可互换。</p>
  *
- * <p>字段 {@link #minorUnit()} 为最小货币单位精度（主单位下小数位数）：
+ * <p>字段 {@link #getMinorUnit()} 为最小货币单位精度（主单位下小数位数）：
  * 人民币/美元为 {@code 2}、日元为 {@code 0}、资金类代码为 {@code -1}。
  * {@link Money} 依赖该精度做最小单位换算。</p>
  *

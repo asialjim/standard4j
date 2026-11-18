@@ -17,6 +17,7 @@
 package com.asialjim.standard4j.code;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 层级字典仓库接口 —— 在 {@link CodeRepository} 之上补充层级查询契约。
@@ -35,9 +36,9 @@ public interface HierarchicalCodeRepository<T extends HierarchicalCode> extends 
      * @param code 码值
      * @return 上级项；顶级项或未命中返回 {@link Optional#empty()}
      */
-    default java.util.Optional<T> parentOf(String code) {
+    default Optional<T> parentOf(String code) {
         return this.ofNullable(code)
-                .flatMap(item -> item.parentCode() == null ? java.util.Optional.empty() : this.ofNullable(item.parentCode()));
+                .flatMap(item -> item.parentCode() == null ? Optional.empty() : this.ofNullable(item.parentCode()));
     }
 
     /**
