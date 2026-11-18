@@ -69,7 +69,7 @@ public interface ResCode {
 - `BusinessException extends RuntimeException implements ResCode` —— 用户可见的业务错误；
 - `SystemException` —— 系统内部错误；
 - `UnLoginException` —— 未登录；
-- `SystemResCode` —— 内置系统错误码枚举（旧库仅 `SysBusy(-2, "系统繁忙")`，逐步扩充）；
+- `SystemResCode` —— 内置**系统级**错误码枚举：**只收录系统自身故障类错误**（`SYSTEM_BUSY(-2, "系统繁忙")`、`INTERNAL_ERROR("500")`、`UNMATCHED_CODE("STD-00001")`）；因用户造成的错误（请求非法/未登录/无权访问/资源不存在等 HTTP 4xx 语义）**不在系统码收录**，由业务/接入层自定义 `ResCode` 枚举；
 - 错误码规范：字符串码，模块前缀 + 数字（如 `"STD-00001"`）；错误码枚举同样实现 `Code` 字典接口。
 - 统一响应体 `Result` / 分页 `PageParameter`/`PageData` 的**归属待定**（standard4j 或 util4j）。
 

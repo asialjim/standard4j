@@ -34,16 +34,16 @@ class ExceptionTest {
     void resCodeFactories() {
         assertAll(
                 () -> {
-                    BusinessException ex = SystemResCode.NOT_FOUND.ex("订单不存在");
-                    assertEquals(SystemResCode.NOT_FOUND.code(), ex.code());
-                    assertEquals(SystemResCode.NOT_FOUND.status(), ex.status());
-                    assertEquals("订单不存在", ex.getMessage());
-                    assertSame(SystemResCode.NOT_FOUND, ex.resCode());
+                    BusinessException ex = SystemResCode.UNMATCHED_CODE.ex("未知的字典码值: [99]");
+                    assertEquals(SystemResCode.UNMATCHED_CODE.code(), ex.code());
+                    assertEquals(SystemResCode.UNMATCHED_CODE.status(), ex.status());
+                    assertEquals("未知的字典码值: [99]", ex.getMessage());
+                    assertSame(SystemResCode.UNMATCHED_CODE, ex.resCode());
                 },
                 () -> {
-                    BusinessException ex = assertThrows(BusinessException.class, SystemResCode.FORBIDDEN::thr);
-                    assertEquals(SystemResCode.FORBIDDEN.code(), ex.code());
-                    assertEquals("无权访问", ex.getMessage());
+                    BusinessException ex = assertThrows(BusinessException.class, SystemResCode.SYSTEM_BUSY::thr);
+                    assertEquals(SystemResCode.SYSTEM_BUSY.code(), ex.code());
+                    assertEquals("系统繁忙", ex.getMessage());
                 }
         );
     }

@@ -22,6 +22,10 @@ package com.asialjim.standard4j.exception;
  * <p>典型用法：{@code SomeErrCode.NOT_FOUND.thr("订单不存在")} 或
  * {@code throw SomeErrCode.NOT_FOUND.ex()}。</p>
  *
+ * <p>边界约定：{@link BusinessException} 及其码值可承载业务层的一切错误
+ * （含请求非法、无权访问、资源不存在等用户侧错误）；系统自身故障优先使用
+ * {@link SystemException} 配合 {@link SystemResCode}（只含系统故障码）。</p>
+ *
  * @author <a href="mailto:asialjim@hotmail.com">Asial Jim</a>
  * @since 1.0.0
  */
