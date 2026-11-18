@@ -16,7 +16,7 @@
 | `i18n` | 语言、货币、时区、Locale | **ISO 639-1、ISO 4217**、IANA tzdb |
 | `human` | 性别、民族、证件类型、国籍等人本字典 | **GB/T 2261.1**（性别）、**GB/T 3304**（民族）、**GA/T 2000.156-2016**（证件类型主码）+ JR/T 0160-2018（金融别名） |
 | `platform` | 平台标准 / 平台应用标准 | 待定义 |
-| `sensitive` | 脱敏规则标识 `MaskRule`、声明接口 `Maskable`、执行 SPI `Masker` | 自定；规则实现归 [sensitive4j](../sensitive4j) |
+| `sensitive` | 脱敏规则标识 `MaskRule`、声明接口 `Maskable`、执行 SPI `Masker`（仅定义接口与规则元数据，不含实现） | 自定 |
 
 ## 核心原则
 
@@ -35,24 +35,9 @@
 
 ### 3. 职责边界
 
-| 库 | 职责 |
-|---|---|
-| `standard4j` | 定义标准：模型、接口、校验规则、掩码规则元数据 |
-| `sensitive4j` | 脱敏执行：`Masker` 实现与掩码算法 |
-| `web4j` | Spring 等框架集成 |
+本库只**定义标准**：模型、接口、校验规则、掩码规则元数据。对应的执行实现（如脱敏算法）由使用方或专门的实现库按本库的 SPI 提供；框架集成（Spring 自动装配等）同样不在本库范围内。
 
-standard4j **不依赖任何运行时框架**（无 Spring），是纯模型 + 接口库。
+## 构建要求
 
-## 依赖定位
-
-- `standard4j` 是本工作区（[cache4j](../cache4j) / [util4j](../util4j) / [sensitive4j](../sensitive4j) / [web4j](../web4j)）的**公共底座**：其他库可依赖它，它不反向依赖任何兄弟库。
 - 构建：Maven；groupId / 包前缀 `com.asialjim.standard4j`。
-
-## 从历史库迁移的修正项
-
-本库承接 `MicroApplet/commons-common` 的设计，但迁移时已修正：
-
-1. `Gender` 码值/名称对调 bug → 按 GB/T 2261.1 重定；
-2. `Nationality`（实为民族）命名误导 → 拆分为 `EthnicGroup`（民族）与国家/国籍两个标准；
-3. `ResCode` 机翻译注 → 全部重写；
-4. Spring Boot 强耦合 → 不迁移，本库保持零框架依赖。
+- 纯模型 + 接口库，**不依赖 Spring 或任何运行时框架**。
