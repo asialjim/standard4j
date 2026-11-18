@@ -22,7 +22,7 @@ public interface Code {
 - `ofOrDefault(String code)` —— 宽容解析，未匹配返回 `UNKNOWN`；
 - 枚举常量名 + code 都不区分大小写。
 
-数据策略：小字典纯封闭枚举；大数据集常用项枚举 + 冷门项文件驱动（classpath JSON，可注册自定义文件），统一 Facade 查找。
+数据策略：小字典纯封闭枚举；大数据集**只定义契约接口 + 仓库接口，不内置数据**（谁使用谁实现，见 §1ter）。
 
 **未知码值策略（已定）**：
 
@@ -51,6 +51,28 @@ public interface Code {
   - 冷门/行业专属证照由目录文件补充：默认内置 classpath JSON（GB/T 36901 目录代码），使用方可注册自定义目录文件；
   - 统一经 Facade 查找：`of(code)` 先查枚举、再查文件目录，别名解析同理，对外无感知。
 - 与 `IdCardType`（身份证件类型）是两个正交标准：证件类型枚举项通过可空的 `certificateTypeCode` 字段关联证照目录代码。
+
+## 1ter. 字典仓库契约（`code`）
+
+枚举字典靠静态 `of()` 查询；**非枚举实现**（文件驱动、数据库字典表、外部服务）由仓库接口约束成同一套查询口径，使"枚举还是文件"对调用方无感：
+
+```java
+public interface CodeRepository<T extends Code> {
+    T unknown();                            // 宽容解析兜底项
+    Optional<T> ofNullable(String code);    // 实现方必须提供
+    default T of(String code);              // 未命中抛 BusinessException(UNMATCHED_CODE)
+    default T ofOrDefault(String code);     // 未命中落 unknown()
+}
+
+public interface HierarchicalCodeRepository<T extends HierarchicalCode> extends CodeRepository<T> {
+    Optional<T> parentOf(String code);      // 默认实现基于 parentCode()
+    List<T> childrenOf(String parentCode);  // 实现方提供
+}
+```
+
+- 层级字典项统一实现 `HierarchicalCode extends Code`（`int level()` + `String parentCode()`，顶级 `parentCode()` 为 `null`）；
+- 领域仓库只做类型收窄：`AdministrativeDivisionRepository`、`IndustryRepository`、`OccupationRepository`；
+- 枚举字典也可顺手实现仓库接口（内部委托 `Codes`），便于统一注入。
 
 ## 2. 业务异常体系（`exception`）
 
@@ -148,9 +170,14 @@ public interface Validator<T> {
 
 ## 5. 金额标准（`money`）
 
-- `Money` 模型：`BigDecimal amount` + `Currency`（ISO 4217 字典），**不可变**；
-- 硬性规定：**库内及使用规范一律不得用 double/float 表示金额**；
-- 最小单位（分/最小币值单位）与展示格式的转换约定。
+- `Currency`：**ISO 4217**（2024-06-25 官方发布版）**现行全量 179 个代码**封闭枚举——三位字母码 + 三位数字码 + 最小货币单位精度 `minorUnit`（人民币/美元 `2`、日元 `0`、XAU/XDR 等资金类 `-1` 表示无小数）；`of(code)` / `ofNullable` / `ofOrDefault` + 按数字码 `ofNumericCode*` 两套查找；
+  - **区分两个"未知"**：`UNKNOWN`（`"-"`，本库约定的解析兜底项）≠ `XXX`（数字码 `999`，ISO 4217 官方"无货币"码）；
+  - 中英文名取 CLDR；UYW/ZWG 为 2024 新增码，中文译名待官方数据校准。
+- `Money` 模型：`BigDecimal amount` + `Currency`，**不可变 record**；
+  - 硬性规定：**库内及使用规范一律不得用 double/float 表示金额**；
+  - 构造时按币种精度规约小数位，多出精度用 `RoundingMode.UNNECESSARY` 直接抛错（**不静默舍入**，防资损）；
+  - 最小单位换算：`ofMinor(long, Currency)` ⇄ `toMinor()`（分 ↔ 元）；
+  - 同币种 `add`/`subtract`/`compareTo`，跨币种运算抛 `BusinessException(SystemResCode.CURRENCY_MISMATCH)`。
 
 ## 6. 计量单位标准（`unit`）
 
@@ -160,12 +187,19 @@ public interface Validator<T> {
 
 ## 7. 区域标准（`region`）
 
-- 国家/地区：ISO 3166-1 alpha-2（主键）+ alpha-3 + 数字码 + 电话区号 + 中英文名。
-- 行政区划：GB/T 2260 省市区县（6 位）、GB/T 10114 乡镇级；**数据逐年变化**：省级封闭枚举 + 市/县级文件驱动，支持版本化更新。
+- 国家/地区 `CountryOrRegion`：ISO 3166-1 alpha-2（主键）+ alpha-3 + 中文名 + 英文名 + 电话区号（见 §9 表）。
+- **行政区划 `AdministrativeDivision` 只定义契约，不内置数据**（GB/T 2260 省市区县 6 位、GB/T 10114 乡镇级 9 位；数据量 3000+ 且逐年变更）：
+  - 契约接口 `AdministrativeDivision extends HierarchicalCode`（`level()` + `parentCode()`）；
+  - 查询接口 `AdministrativeDivisionRepository extends HierarchicalCodeRepository`——`of`/`ofNullable`/`ofOrDefault` 三口径 + `parentOf`/`childrenOf`；
+  - 谁使用谁实现（封闭枚举 / 文件驱动 / 数据库字典表皆可），并自行负责与最新版标准对齐。
 
 ## 8. 国际化（`i18n`）
 
-- 语言 ISO 639-1、货币 ISO 4217（含货币符号、最小单位）、时区 IANA、Locale 约定。
+- 语言 `Language`：**ISO 639-1** 两字母码，只收录**总使用人数（母语 + 第二语言）超过 5000 万**的常用语言（24 项：zh/en/hi/es/fr/ar/bn/pt/ru/ur/id/de/ja/sw/mr/te/ta/tr/vi/ko/it/fa/ha/pa）；
+  - 汉语按宏观语种 `zh` 单列（粤语/吴语等变体无 ISO 639-1 码）；
+  - 爪哇语等超 5000 万但无 ISO 639-1 码的语言不收录；
+  - 常用子集而非全量，小语种由使用方自行扩展。
+- 货币 ISO 4217 见 §5；时区 IANA、Locale 约定——待定，暂不纳入。
 
 ## 9. 人本字典（`human`）与行业字典
 
@@ -179,12 +213,12 @@ public interface Validator<T> {
 | 民族 | **GB/T 3304**（2 位数字码 01-56）+ 旧库世界族裔 63 项（**非国标扩展**，code 加 `X-` 前缀如 `X-ARA`）；旧库三字码降为 `legacyCode` 辅助别名（旧码有 EVE/JIN 重复，已消歧），仅供历史数据迁移 |
 | 学历 | **GB/T 4658-2006**：2 位层次码，末位 `*1`毕业/`*2`结业/`*3`肄业；`90`其他兼任 UNKNOWN；不收录私有扩展 |
 | 学位 | **GB/T 6864-2003**：两层码，第一层 `1`名誉博士/`2`博士/`3`硕士/`4`学士，第二层 `01~40` 学科门类（12 门类）、`41~80` 专业学位（2003 文本 16 个：245/248/250、341-352、444）；2003 后新增学位（艺术学 213/313/413 等）暂不收录，按官方补充文件增补 |
-| 健康状况 | 自定 |
+| 健康状况 | **不设字典**（无权威国标，且业务口径差异过大） |
 | 国籍/国家 | **ISO 3166-1** 全量 249 个正式分配的 alpha-2 码（`region` 包 `CountryOrRegion`，`human` 引用）+ alpha-3 别名码（`ofAlpha3*`）+ 电信区号 `idd`（ITU-T E.164 国家/地区码，`ofIdd*` 兼容 `86`/`+86`/`0086` 三种入参形态；`+1`/`+7` 多国共享码用 `ofIddAll` 返回全部命中；AQ/HM 无区号存空串）；中文译名取 CLDR-zh（简体），HK/MO 按数据集 TW 命名风格归一为"中国香港/中国澳门"；XK（科索沃）为用户自定义码暂不收录；译名与 GB/T 2659 官方译名可能存在个别差异，按官方数据校准 |
 | 证件类型 | **GA/T 2000.156-2016** 主码 + **JR/T 0160-2018**（金融 DM001）内置别名 + `certificateTypeCode` 关联证照目录（可空）+ 脱敏保留位数 |
-| 运营商 | 自定（移动/联通/电信/广电，与手机号校验联动） |
-| 行业 | **GB/T 4754** 国民经济行业分类：常用类目枚举 + 全量文件驱动 |
-| 职业 | **GB/T 6565** 职业分类：常用枚举 + 文件驱动 |
+| 运营商 | **不设字典**（携号转网后运营商归属不再稳定，且无权威国标；号码段判定属业务能力，由使用方实现） |
+| 行业 | **GB/T 4754** 国民经济行业分类——**只定义契约，不内置数据**：`Industry extends HierarchicalCode`（门类 A~T → 大类 2 位 → 中类 4 位 → 小类 6 位）+ `IndustryRepository`（三口径 + `parentOf`/`childrenOf`），谁使用谁实现 |
+| 职业 | **GB/T 6565** 职业分类——**只定义契约，不内置数据**：`Occupation extends HierarchicalCode` + `OccupationRepository`，谁使用谁实现 |
 
 ## 10. 脱敏规则接口（`sensitive`）
 
@@ -208,7 +242,7 @@ public interface Masker {                    // SPI；standard4j 内置 no-op �
 
 ## 11. 从 commons-common 的借鉴清单
 
-借鉴（设计）：`ResCode`、`BusinessException`/`SystemException`/`UnLoginException`/`SystemResCode`、`IdCardType`（含脱敏元数据）、`CountryOrDict`、民族字典、`SensitiveUtils` 算法、pom 依赖坐标（commons-lang3/collections4/io、Jackson 3 `tools.jackson.*`、jakarta、Lombok）。
+借鉴（设计）：`ResCode`、`BusinessException`/`SystemException`/`SystemResCode`、`IdCardType`（含脱敏元数据）、`CountryOrDict`、民族字典、`SensitiveUtils` 算法、pom 依赖坐标（commons-lang3/collections4/io、Jackson 3 `tools.jackson.*`、jakarta、Lombok）。
 
 修正：
 1. `Gender` 码值/名称对调 bug → 按 GB/T 2261.1 重定；
@@ -222,5 +256,6 @@ public interface Masker {                    // SPI；standard4j 内置 no-op �
 
 - [ ] 统一响应体 `Result` 与分页模型的归属（standard4j 或 util4j）；
 - [ ] 证件类型代码：主码 GA/T 2000.156-2016（无 GB 国标），需持标准全文核对旧码值；
+- [ ] 证照目录（GB/T 36901）与 `CertificateType` 的取舍——概念待与需求方确认后再定（当前 `IdCardType` 已满足证件类型场景）；
 - [ ] 平台标准 / 平台应用标准的具体定义（待需求方澄清）；
 - [ ] 日期/时间表述约定（存储时区、年龄周岁计算规范）——候选，未纳入范围。

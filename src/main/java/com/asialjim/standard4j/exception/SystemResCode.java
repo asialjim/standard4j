@@ -47,6 +47,14 @@ public enum SystemResCode implements ResCode {
      * 正确入口；严格查找（{@code of}）失败意味着调用方未先行校验，属系统内部一致性错误。</p>
      */
     UNMATCHED_CODE("STD-00001", "未知的字典码值", 400),
+
+    /**
+     * 币种不一致（{@code Money} 运算两侧币种不同，HTTP 400）。
+     *
+     * <p>归入系统码的理由与 {@link #UNMATCHED_CODE} 相同：属编程错误
+     * （不同币种金额不允许直接运算），不是用户可见的业务错误。</p>
+     */
+    CURRENCY_MISMATCH("STD-00002", "币种不一致", 400),
     ;
 
     private final String code;
