@@ -32,13 +32,14 @@ public interface Code {
   - `ofOrDefault(code)` —— **宽容**解析，未匹配返回 `UNKNOWN`（用于展示、反序列化兜底）；
 - 每个枚举提供 `unknown()` 静态访问器；`UNKNOWN` 的 code 值由各字典依据其标准定义（如性别 GB/T 2261.1 的 `0=未知`、`9=未说明`），无标准依据的统一用 `"-"`。
 
-**序列化与反序列化约定（已定）**：
+**序列化与反序列化约定（已定，三层口径）**：
 
-- **`code` 是字典枚举唯一的对外表示**：JSON 报文、DB 存储、接口交换一律存 code；枚举常量名仅是 Java 内部细节，中文名仅用于展示，均不允许落存储/报文；
-- 序列化：枚举 → `code()` 字符串；`UNKNOWN` 亦序列化为其 code（如 `"-"`），保证往返幂等；
-- 反序列化：走宽容口径 `ofOrDefault`——trim、忽略大小写，`null`/空串/未匹配一律落 `UNKNOWN`，**不抛异常**；需要强校验的业务点显式调 `of(code)` 自行抛错，序列化层永远宽容；
-- 展示名通过字典 Facade 按 code 查询，不进报文；
-- 本库核心只定义约定与 `CodeCodec` SPI 接口；Jackson 序列化器做成可选模块（`standard4j-jackson`），本体保持零依赖，其他 JSON 框架按同一约定自行适配。
+- **存储口径（DB）**：只存 `code` 字符串（TypeHandler 等）；存储结构化数据无意义；
+- **展示口径（给前端的报文）**：输出**结构化视图** `CodeView{code, name, description}`——前端用 `name` 做阅读友好渲染、用 `code` 回传，杜绝"只有展示数据没有 code"的断链；core 提供 `record CodeView` 与 `Code.view()` 默认方法；
+- **回传/交换口径（前端→后端）**：反序列化**兼容双形态**——字符串（按 code 解析）或对象（取其 `code` 成员解析），再走 `ofOrDefault` 宽容兜底（未知码 → `UNKNOWN`，不抛异常）；
+- 强校验场景由业务点显式调 `of(code)` 自行抛错，序列化层永远宽容；
+- `UNKNOWN` 亦序列化为其 code（如 `"-"`），保证往返幂等；
+- 本库核心只定义约定与 `CodeCodec` SPI 接口；Jackson 序列化器（含 `@CodeRef` 注解声明"此字段按 CodeView 输出/按存储口径输出"）做成可选模块（`standard4j-jackson`），本体保持零依赖，其他 JSON 框架按同一约定自行适配。
 
 ## 1bis. 证照类型标准（`certificate`）
 
