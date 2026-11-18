@@ -30,12 +30,12 @@ import java.util.Optional;
  * <ul>
  *     <li>旧库 {@code Nationality} 实为本标准（民族），命名有误导性；国籍/国家标准由 region 包的
  *         国家/地区字典承担，两者正交；</li>
- *     <li>{@link #legacyCode()} 为旧库自定义三字码（<b>非标准</b>，仅供历史数据迁移），标准场景一律使用
+ *     <li>{@link #getLegacyCode()} 为旧库自定义三字码（<b>非标准</b>，仅供历史数据迁移），标准场景一律使用
  *         GB/T 3304 数字码；旧库三字码存在重复（{@code EVE} 同时用于鄂温克族与鄂伦春族、
  *         {@code JIN} 同时用于京族与基诺族），本枚举已消歧：鄂伦春族 {@code ELC}、基诺族 {@code JNO}；</li>
  *     <li>除 GB/T 3304 的 56 个中国民族外，本枚举还收录旧库中的<b>世界主要族裔</b>（非国标扩展）：
  *         其 {@link #code()} 统一加 {@code X-} 前缀标识（如 {@code X-ARA} 阿拉伯人），与 GB 数字码明确区分；
- *         {@link #legacyCode()} 保留旧库三字码；</li>
+ *         {@link #getLegacyCode()} 保留旧库三字码；</li>
  * </ul>
  *
  * @author <a href="mailto:asialjim@hotmail.com">Asial Jim</a>

@@ -57,13 +57,13 @@ class IdCardTypeTest {
     @DisplayName("JR/T 0160-2018 金融别名码")
     void jrCodeAliases() {
         assertAll(
-                () -> assertEquals("1", IdCardType.RESIDENT_ID_CARD.getJrCode()),
-                () -> assertEquals("5", IdCardType.HOUSEHOLD_REGISTER.getJrCode()),
-                () -> assertEquals("11", IdCardType.DRIVER_LICENSE.getJrCode()),
-                () -> assertEquals("2", IdCardType.MILITARY_ID.getJrCode()),
-                () -> assertEquals("6", IdCardType.PASSPORT.getJrCode()),
-                () -> assertNull(IdCardType.SOCIAL_SECURITY_CARD.getJrCode()),
-                () -> assertNull(IdCardType.BORDER_PASS.getJrCode())
+                () -> assertEquals("1", IdCardType.RESIDENT_ID_CARD.getFinancialCode()),
+                () -> assertEquals("5", IdCardType.HOUSEHOLD_REGISTER.getFinancialCode()),
+                () -> assertEquals("11", IdCardType.DRIVER_LICENSE.getFinancialCode()),
+                () -> assertEquals("2", IdCardType.MILITARY_ID.getFinancialCode()),
+                () -> assertEquals("6", IdCardType.PASSPORT.getFinancialCode()),
+                () -> assertNull(IdCardType.SOCIAL_SECURITY_CARD.getFinancialCode()),
+                () -> assertNull(IdCardType.BORDER_PASS.getFinancialCode())
         );
     }
 

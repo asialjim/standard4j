@@ -28,10 +28,10 @@ import java.util.Optional;
  *
  * <p><b>对齐说明</b>：证件类型代码无 GB 国标覆盖，主码采用
  * <b>GA/T 2000.156-2016《公安信息代码 第156部分：常用证件代码》</b>口径（码表待持标准全文逐项核对）；
- * 内置 <b>JR/T 0160-2018</b>（金融行业 DM001 代码表）别名码 {@link #jrCode()}，金融场景直接可用；
+ * 内置 <b>JR/T 0160-2018</b>（金融行业 DM001 代码表）别名码 {@link #getFinancialCode()}，金融场景直接可用；
  * 其他行业标准码值可经别名映射外挂。</p>
  *
- * <p>每个证件类型自带脱敏保留位数（{@link #sensitiveLeft()}/{@link #sensitiveRight()}），
+ * <p>每个证件类型自带脱敏保留位数（{@link #getSensitiveLeft()}/{@link #getSensitiveRight()}），
  * 供脱敏规则元数据使用；脱敏执行归敏感信息处理库。</p>
  *
  * @author <a href="mailto:asialjim@hotmail.com">Asial Jim</a>
@@ -97,7 +97,7 @@ public enum IdCardType implements Code {
     private final String enName;
 
     /** JR/T 0160-2018（金融 DM001）别名码；该标准未定义时为 {@code null} */
-    private final String jrCode;
+    private final String financialCode;
 
     /** 证件号脱敏保留左边字符数 */
     private final int sensitiveLeft;
