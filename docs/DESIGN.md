@@ -9,8 +9,8 @@
 ```java
 public interface Code {
     String code();     // 编码
-    String name();     // 标准名称
-    default String description() { return name(); }
+    String label();    // 展示名（不可用 name()，与 Enum.name() 冲突）
+    default String description() { return label(); }
     default boolean enabled() { return true; }
 }
 ```
@@ -35,7 +35,7 @@ public interface Code {
 **序列化与反序列化约定（已定，三层口径）**：
 
 - **存储口径（DB）**：只存 `code` 字符串（TypeHandler 等）；存储结构化数据无意义；
-- **展示口径（给前端的报文）**：输出**结构化视图** `CodeView{code, name, description}`——前端用 `name` 做阅读友好渲染、用 `code` 回传，杜绝"只有展示数据没有 code"的断链；core 提供 `record CodeView` 与 `Code.view()` 默认方法；
+- **展示口径（给前端的报文）**：输出**结构化视图** `CodeView{code, label, description}`——前端用 `label` 做阅读友好渲染、用 `code` 回传，杜绝"只有展示数据没有 code"的断链；core 提供 `record CodeView` 与 `Code.view()` 默认方法；
 - **回传/交换口径（前端→后端）**：反序列化**兼容双形态**——字符串（按 code 解析）或对象（取其 `code` 成员解析），再走 `ofOrDefault` 宽容兜底（未知码 → `UNKNOWN`，不抛异常）；
 - 强校验场景由业务点显式调 `of(code)` 自行抛错，序列化层永远宽容；
 - `UNKNOWN` 亦序列化为其 code（如 `"-"`），保证往返幂等；

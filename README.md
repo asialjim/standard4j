@@ -8,7 +8,7 @@
 
 | 包 | 内容 | 对齐标准 |
 |---|---|---|
-| `code` | 统一字典模型（code / name / status / sort / 层级）与查找约定；通用业务字典 | 自定模型，字典项逐一对齐国标 |
+| `code` | 统一字典模型（code / label / status / 层级）与查找约定；通用业务字典 | 自定模型，字典项逐一对齐国标 |
 | `certificate` | 证照类型：目录代码、证照标识（OID）、发证机构 | **GB/T 36901~36904-2018（电子证照系列）** |
 | `exception` | 业务异常体系、统一响应码接口 `ResCode`、错误码规范 | 自定 |
 | `entity` | 命名标准：**业务字段与元数据全部以可组合接口（getter/setter）落实**（`Nameable`/`Certifiable`/`Auditable` 等，字段类型绑定字典枚举）；业务单号格式规范 | 字段语义对齐国标 |
@@ -36,7 +36,7 @@
 - **大数据集**（证照目录、行政区划市/县级）：常用项封闭枚举，冷门项由文件数据驱动——默认内置 classpath JSON，使用方可注册自定义目录文件。
 - 查找统一经 Facade：`of(code)` 先查枚举、再查文件数据，对使用方无感知。
 - **未知码值**：每个字典枚举必须含 `UNKNOWN` 项；严格查找（`of`）抛异常，宽容解析（`ofOrDefault`）与反序列化兜底一律落 `UNKNOWN`，不允许炸掉整条记录。
-- **序列化约定（三层口径）**：DB 存 `code`；给前端的报文输出结构化 `CodeView{code, name, description}`（展示 `name`、回传 `code`，不断链）；回传兼容字符串/对象双形态，统一取 `code` 走宽容兜底。`UNKNOWN` 往返幂等；`CodeCodec` SPI 在核心，**Jackson 适配由 util4j 实现**，本体零依赖。
+- **序列化约定（三层口径）**：DB 存 `code`；给前端的报文输出结构化 `CodeView{code, label, description}`（展示 `label`、回传 `code`，不断链）；回传兼容字符串/对象双形态，统一取 `code` 走宽容兜底。`UNKNOWN` 往返幂等；`CodeCodec` SPI 在核心，**Jackson 适配由 util4j 实现**，本体零依赖。
 
 ### 3. 职责边界
 
