@@ -70,6 +70,32 @@ class CountryOrRegionTest {
     }
 
     @Test
+    @DisplayName("电信区号（ITU-T E.164）：兼容 86 / +86 / 0086 三种入参形态")
+    void iddLookup() {
+        assertAll(
+                () -> assertEquals(CountryOrRegion.CHINA, CountryOrRegion.ofIdd("86")),
+                () -> assertEquals(CountryOrRegion.CHINA, CountryOrRegion.ofIdd("+86")),
+                () -> assertEquals(CountryOrRegion.CHINA, CountryOrRegion.ofIdd("0086")),
+                () -> assertEquals(CountryOrRegion.HONG_KONG, CountryOrRegion.ofIdd("852")),
+                () -> assertEquals("86", CountryOrRegion.CHINA.getIdd()),
+                () -> assertEquals("886", CountryOrRegion.TAIWAN.getIdd()),
+                () -> assertEquals("", CountryOrRegion.ANTARCTICA.getIdd()),
+                () -> assertEquals(CountryOrRegion.UNKNOWN, CountryOrRegion.ofIddOrDefault("999"))
+        );
+    }
+
+    @Test
+    @DisplayName("共享区号多国命中：+1（美国/加拿大）、+7（俄罗斯/哈萨克斯坦）")
+    void sharedIddCodes() {
+        assertAll(
+                () -> assertEquals(java.util.List.of(CountryOrRegion.CANADA, CountryOrRegion.UNITED_STATES),
+                        CountryOrRegion.ofIddAll("1")),
+                () -> assertEquals(java.util.List.of(CountryOrRegion.KAZAKHSTAN, CountryOrRegion.RUSSIA),
+                        CountryOrRegion.ofIddAll("7"))
+        );
+    }
+
+    @Test
     @DisplayName("UNKNOWN 约定（\"-\"）与中文译名抽查")
     void unknownAndLabels() {
         assertAll(
