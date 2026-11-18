@@ -64,4 +64,18 @@ class EthnicGroupTest {
                 () -> assertEquals("-", EthnicGroup.UNKNOWN.code())
         );
     }
+
+    @Test
+    @DisplayName("旧库三字码查找（非标准，仅供迁移），重复码已消歧")
+    void legacyCodeLookup() {
+        assertAll(
+                () -> assertEquals(EthnicGroup.HAN, EthnicGroup.ofLegacy("han")),
+                () -> assertEquals(EthnicGroup.EVENK, EthnicGroup.ofLegacy("EVE")),
+                // 旧库 EVE/JIN 重复：鄂伦春消歧为 ELC、基诺消歧为 JNO
+                () -> assertEquals(EthnicGroup.OROQEN, EthnicGroup.ofLegacy("ELC")),
+                () -> assertEquals(EthnicGroup.GIN, EthnicGroup.ofLegacy("JIN")),
+                () -> assertEquals(EthnicGroup.JINO, EthnicGroup.ofLegacy("JNO")),
+                () -> assertEquals(EthnicGroup.UNKNOWN, EthnicGroup.ofLegacyOrDefault("XXX"))
+        );
+    }
 }
