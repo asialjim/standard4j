@@ -36,7 +36,7 @@
 - **大数据集**（证照目录、行政区划市/县级）：常用项封闭枚举，冷门项由文件数据驱动——默认内置 classpath JSON，使用方可注册自定义目录文件。
 - 查找统一经 Facade：`of(code)` 先查枚举、再查文件数据，对使用方无感知。
 - **未知码值**：每个字典枚举必须含 `UNKNOWN` 项；严格查找（`of`）抛异常，宽容解析（`ofOrDefault`）与反序列化兜底一律落 `UNKNOWN`，不允许炸掉整条记录。
-- **序列化约定（三层口径）**：DB 存 `code`；给前端的报文输出结构化 `CodeView{code, name, description}`（展示 `name`、回传 `code`，不断链）；回传兼容字符串/对象双形态，统一取 `code` 走宽容兜底。`UNKNOWN` 往返幂等；`CodeCodec` SPI 在核心，Jackson 适配（`@CodeRef` 按字段选择口径）放可选模块，本体零依赖。
+- **序列化约定（三层口径）**：DB 存 `code`；给前端的报文输出结构化 `CodeView{code, name, description}`（展示 `name`、回传 `code`，不断链）；回传兼容字符串/对象双形态，统一取 `code` 走宽容兜底。`UNKNOWN` 往返幂等；`CodeCodec` SPI 在核心，**Jackson 适配由 util4j 实现**，本体零依赖。
 
 ### 3. 职责边界
 
@@ -44,5 +44,6 @@
 
 ## 构建要求
 
-- 构建：Maven；groupId / 包前缀 `com.asialjim.standard4j`。
-- 纯模型 + 接口库，**不依赖 Spring 或任何运行时框架**。
+- 构建：Maven；groupId `com.asialjim`、artifactId `standard4j`、包前缀 `com.asialjim.standard4j`；**打包模式：单模块 jar（不使用 pom 聚合/父工程）**。
+- **Java 基线：17（LTS）**——依据：`CodeView` 等 record（16+）、Jackson 3 在 util4j（要求 17+）、Spring Boot 3/Jakarta 生态基线；`release=17` 的产物可直接运行于 17/21/25。
+- 纯模型 + 接口库，**不依赖 Spring 或任何运行时框架**（Lombok 为编译期 provided，不进传递依赖）。

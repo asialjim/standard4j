@@ -48,7 +48,7 @@
         <!--
           ~ 本体保持零运行时依赖：
           ~ Lombok 为编译期注解处理器（provided），不进入传递依赖；
-          ~ Jackson 等序列化适配后续放可选模块 standard4j-jackson。
+          ~ Jackson 3 由 util4j 引入并提供 CodeCodec 适配，本库本体零依赖。
           -->
         <dependency>
             <groupId>org.projectlombok</groupId>

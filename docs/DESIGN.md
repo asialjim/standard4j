@@ -39,7 +39,7 @@ public interface Code {
 - **回传/交换口径（前端→后端）**：反序列化**兼容双形态**——字符串（按 code 解析）或对象（取其 `code` 成员解析），再走 `ofOrDefault` 宽容兜底（未知码 → `UNKNOWN`，不抛异常）；
 - 强校验场景由业务点显式调 `of(code)` 自行抛错，序列化层永远宽容；
 - `UNKNOWN` 亦序列化为其 code（如 `"-"`），保证往返幂等；
-- 本库核心只定义约定与 `CodeCodec` SPI 接口；Jackson 序列化器（含 `@CodeRef` 注解声明"此字段按 CodeView 输出/按存储口径输出"）做成可选模块（`standard4j-jackson`），本体保持零依赖，其他 JSON 框架按同一约定自行适配。
+- 本库核心只定义约定与 `CodeCodec` SPI 接口；**Jackson 适配（含 `@CodeRef` 注解声明"此字段按 CodeView 输出/按存储口径输出"）由 util4j 实现**（util4j → standard4j，依赖方向成立），本库本体保持零依赖，其他 JSON 框架按同一约定自行适配。
 
 ## 1bis. 证照类型标准（`certificate`）
 
