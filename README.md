@@ -2,25 +2,26 @@
 
 以 Java 语言定义的**开发标准库**。这里的"标准"不是语言标准库，而是把业务开发中反复出现的各类标准沉淀为可复用代码：行政代码、国家/民族/性别等字典代码、证件与证照标准、业务异常体系、命名标准（实体字段规范）、脱敏规则接口、平台标准等。
 
-> 当前状态：**设计定稿，核心已落地**——`code`/`exception`/`human`/`region`/`i18n`/`money`/`entity`/`sensitive` 已实现，`validate`/`unit`/`certificate`/`platform` 待实现。详细设计见 [docs/DESIGN.md](docs/DESIGN.md)。
+> 当前状态：**核心已落地，校验/平台/响应体已补齐**——`code`/`exception`/`result`/`human`/`region`/`i18n`/`money`/`entity`/`sensitive`/`validate`/`platform` 已实现，`certificate`/`unit` 待实现。详细设计见 [docs/DESIGN.md](docs/DESIGN.md)。
 
 ## 标准清单
 
 | 包 | 内容 | 对齐标准 |
 |---|---|---|
-| `code` | 统一字典模型（code / label / status）；层级字典 `HierarchicalCode`；枚举三口径查找 `Codes`；非枚举字典的仓库契约 `CodeRepository`/`HierarchicalCodeRepository` | 自定模型，字典项逐一对齐国标 |
-| `certificate` | 证照类型：目录代码、证照标识（OID）、发证机构 | **GB/T 36901~36904-2018（电子证照系列）** |
-| `exception` | 业务异常体系、统一响应码接口 `ResCode`、错误码规范 | 自定 |
-| `entity` | 命名标准：**业务字段与元数据全部以可组合接口（getter/setter）落实**（`Nameable`/`Certifiable`/`Auditable` 等，字段类型绑定字典枚举）；业务单号格式规范 | 字段语义对齐国标 |
-| `validate` | 统一校验器接口与内置校验器（公民身份号码、统一社会信用代码、手机号、银行卡号等） | **GB 11643、GB 32100、GB 11714、ITU-T E.164、ISO/IEC 7812** |
+| `code` | 统一字典模型（code / label / status）；层级字典 `HierarchicalCode`；枚举三口径查找 `Codes`；非枚举字典的仓库契约 `CodeRepository`/`HierarchicalCodeRepository`；序列化编解码 SPI `CodeCodec`；别名映射 SPI `AliasTable` | 自定模型，字典项逐一对齐国标 |
+| `certificate` | 证照类型：目录代码、证照标识（OID）、发证机构（**待实现**，概念待需求方确认） | **GB/T 36901~36904-2018（电子证照系列）** |
+| `exception` | 业务异常体系、统一响应码接口 `ResCode`、动态响应码 `SimpleResCode`、错误码规范 | 自定 |
+| `result` | 统一响应体 `Result`（成功/失败/数据/分页元数据）；分页响应元数据 `PageMeta`（当前页、总页数、页大小、总记录数）；**不包含分页请求参数** | 自定 |
+| `entity` | 命名标准：**业务字段与元数据全部以可组合接口（getter/setter）落实**（`Nameable`/`Certifiable`/`Auditable` 等，字段类型绑定字典枚举）；业务单号格式规范（**待定**） | 字段语义对齐国标 |
+| `validate` | 统一校验器接口与内置校验器（公民身份号码、统一社会信用代码、组织机构代码、E.164、银行卡号、手机号、邮箱、车牌、港澳台证件号） | **GB 11643、GB 32100、GB 11714、ITU-T E.164、ISO/IEC 7812** |
 | `money` | `Currency`（ISO 4217 现行全量 179 个代码，含数字码与最小单位精度）+ 不可变金额模型 `Money`（`BigDecimal`，禁用浮点表金额） | **ISO 4217** |
-| `unit` | 计量单位字典与换算 | **GB 3100/3101/3102** |
+| `unit` | 计量单位字典与换算（**待实现**） | **GB 3100/3101/3102** |
 | `region` | 国家/地区全量 249 项（alpha-2 主键 + alpha-3 + 中文名 + 英文名 + 电信区号）；行政区划**只定义契约与仓库接口，数据谁用谁实现** | **ISO 3166-1**、ITU-T E.164、**GB/T 2260**、GB/T 10114 |
 | `i18n` | 语言（ISO 639-1 常用子集：使用人数 > 5000 万）；Locale 约定 | **ISO 639-1** |
 | `human` | 性别、婚姻状况、政治面貌、民族、学历、学位、证件类型等封闭字典；职业**只定义契约与仓库接口** | **GB/T 2261.1/2261.2**（性别/婚姻）、**GB/T 4762**（政治面貌）、**GB/T 3304**（民族）、**GB/T 4658**（学历）、**GB/T 6864**（学位）、**GB/T 6565**（职业契约）、**GA/T 2000.156-2016**（证件类型主码）+ JR/T 0160-2018（金融别名） |
 | `industry` | 行业**只定义契约与仓库接口，数据谁用谁实现** | **GB/T 4754** |
-| `platform` | 平台标准 / 平台应用标准 | 待定义 |
-| `sensitive` | 脱敏规则标识 `MaskRule`、声明接口 `Maskable`、执行 SPI `Masker`（仅定义接口与规则元数据，不含实现） | 自定 |
+| `platform` | 平台契约 `Platform`、平台应用契约 `PlatformApplication`（`platform()` 明确所属平台）、平台仓库 `PlatformRepository`、平台应用仓库 `PlatformApplicationRepository` | 待需求方定义具体平台码值 |
+| `sensitive` | 脱敏规则标识 `MaskRule`（敏感段定位 + 段内左右保留/中间掩码）、声明接口 `Maskable`、执行 SPI `Masker`（内置 `STANDARD` 与 `NONE`）、常用规则 `CommonMaskRule` | 自定 |
 
 ## 核心原则
 
@@ -29,18 +30,18 @@
 - 能与国标（GB 系列）对齐的与国标对齐；能与 ISO 对齐的与 ISO 对齐；都覆盖不到才自定义编码。
 - 每个字典项的 Javadoc 必须写明依据的标准号（如 `GB/T 2261.1`）。
 - 无国标但有权威行业标准的，主码取覆盖面最全的行业标准，其余作为别名兼容。例：证件类型无 GB 国标，主码取 GA/T 2000.156-2016（公安），内置 JR/T 0160-2018（金融 DM001）别名码。
-- 同一标准在不同行业码值不同时，用**别名映射**兼容（枚举内置或 `AliasTable` SPI 外挂），不另立枚举。
+- 同一标准在不同行业码值不同时，用**别名映射**兼容（枚举内置或 `AliasTable` SPI 外挂），不另立枚举。别名查询入口有两种：枚举自带的显式反查（如 `IdCardType.ofFinancialCode`）与通用 `AliasTables`（主码优先、别名兜底）。
 
 ### 2. 数据策略与容错：小字典封闭枚举 + 大数据只定契约 + UNKNOWN 兜底
 
 - **小字典**（性别、民族、证件类型、货币、语言、国家/地区等）：纯封闭枚举，编译期固化，静态 `of()` 直接可查。
-- **大数据/易变数据**（行政区划、行业、职业）：**本库只定义契约接口 + 仓库接口，不内置任何数据**——谁使用谁实现（枚举、文件、数据库字典表皆可），实现方自行对齐最新版标准。查询口径与枚举保持一致：`of()` 严格、`ofNullable()` 宽容、`ofOrDefault()` 落 `UNKNOWN`，另有层级查询 `parentOf()`/`childrenOf()`。
+- **大数据/易变数据**（行政区划、行业、职业、平台/平台应用）：**本库只定义契约接口 + 仓库接口，不内置任何数据**——谁使用谁实现（枚举、文件、数据库字典表皆可），实现方自行对齐最新版标准。查询口径与枚举保持一致：`of()` 严格、`ofNullable()` 宽容、`ofOrDefault()` 落 `UNKNOWN`，另有层级查询 `parentOf()`/`childrenOf()`。
 - **未知码值**：每个字典枚举必须含 `UNKNOWN` 项；严格查找（`of`）抛异常，宽容解析（`ofOrDefault`）与反序列化兜底一律落 `UNKNOWN`，不允许炸掉整条记录。
 - **序列化约定（三层口径）**：DB 存 `code`；给前端的报文输出结构化 `CodeView{code, label, description}`（展示 `label`、回传 `code`，不断链）；回传兼容字符串/对象双形态，统一取 `code` 走宽容兜底。`UNKNOWN` 往返幂等；`CodeCodec` SPI 在核心，**Jackson 适配由 util4j 实现**，本体零依赖。
 
 ### 3. 职责边界
 
-本库只**定义标准**：模型、接口、校验规则、掩码规则元数据。对应的执行实现（如脱敏算法）由使用方或专门的实现库按本库的 SPI 提供；框架集成（Spring 自动装配等）同样不在本库范围内。
+本库只**定义标准**：模型、接口、校验规则、掩码规则与默认算法。默认脱敏算法在 `MaskRule`/`Masker.STANDARD`，特殊算法由使用方或专门的实现库按 `Masker` SPI 覆盖；框架集成（Spring 自动装配等）不在本库范围内。
 
 ## 构建要求
 

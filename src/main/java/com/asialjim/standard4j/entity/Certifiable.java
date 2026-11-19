@@ -23,6 +23,10 @@ import java.time.LocalDate;
 /**
  * 证件字段契约 —— 证件类型绑定 {@link IdCardType}，其余为证件本体信息。
  *
+ * <p>本接口描述<b>单本证件</b>，不是自然人基础字段：一个自然人可持有多本证件，
+ * 自然人实体应按需组合 {@code Nameable}/{@code Genderable} 等基础接口，证件另以
+ * 集合或独立关联实体承载。</p>
+ *
  * <p>字段口径：</p>
  * <ul>
  *     <li>{@code certificateType} —— 证件类型（GA/T 2000.156-2016 主码，兼容 JR/T 0160-2018 金融别名）；</li>

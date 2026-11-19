@@ -50,7 +50,9 @@ public interface Code {
   - 枚举内置高频证照项（营业执照、居民户口簿、结婚证、学历证书等）；
   - 冷门/行业专属证照由目录文件补充：默认内置 classpath JSON（GB/T 36901 目录代码），使用方可注册自定义目录文件；
   - 统一经 Facade 查找：`of(code)` 先查枚举、再查文件目录，别名解析同理，对外无感知。
-- 与 `IdCardType`（身份证件类型）是两个正交标准：证件类型枚举项通过可空的 `certificateTypeCode` 字段关联证照目录代码。
+- 与 `IdCardType`（身份证件类型）是两个正交标准，**不做字段关联**：一个自然人可持有多本证件，
+  自然人基础字段只保留姓名/性别/出生日期等基础信息，证件由独立集合承载。
+- 当前状态：`certificate` 包尚未实现，概念与数据来源待需求方确认。
 
 ## 1ter. 字典仓库契约（`code`）
 
@@ -74,26 +76,50 @@ public interface HierarchicalCodeRepository<T extends HierarchicalCode> extends 
 - 领域仓库只做类型收窄：`AdministrativeDivisionRepository`、`IndustryRepository`、`OccupationRepository`；
 - 枚举字典也可顺手实现仓库接口（内部委托 `Codes`），便于统一注入。
 
+序列化与别名扩展点：
+
+```java
+public interface CodeCodec {                 // 序列化编解码 SPI，Jackson 适配在 util4j
+    String encode(Code code);                // 默认取 code()
+    <T extends Code> Optional<T> decode(String code, T[] values); // 默认委托 Codes
+}
+
+public interface AliasTable<T extends Code> { // 别名映射 SPI，数据可来自文件/DB/代码
+    String namespace();                       // 如 "JR/T-0160"
+    Optional<T> ofNullable(String alias);
+    default T of(String alias);
+    default T ofOrDefault(String alias, T unknown);
+}
+```
+
+- `AliasTables.ofNullable(values, input, tables...)` 先查主码、再按顺序查别名表；
+  主码与别名冲突时主码优先；需要按特定行业别名强制解析时使用枚举自带的显式反查
+  （如 `IdCardType.ofFinancialCode`）。
+
 ## 2. 业务异常体系（`exception`）
 
 沿用 commons-common 的设计（该设计可取），重写注释、剥离 Spring 依赖：
 
 ```java
-public interface ResCode {
+public interface ResCode extends Code {
     int status();          // HTTP 语义状态码
     String code();         // 业务错误码（字符串）
-    String msg();          // 默认消息
-    boolean thr();         // 是否需要抛出
-    // 工厂方法：result() / result(data) / resultErrs() / page(...) / ex() / thr()
+    String label();        // 展示名（Code 契约）
+    default String msg();  // 默认消息
+    default BusinessException ex();                // 构建业务异常
+    default BusinessException ex(String message);
+    default void thr();                            // 直接抛出
+    default void thr(String message);
 }
 ```
 
 - `BusinessException extends RuntimeException implements ResCode` —— 用户可见的业务错误；
 - `SystemException` —— 系统内部错误；
-- `UnLoginException` —— 未登录；
-- `SystemResCode` —— 内置**系统级**错误码枚举：**只收录系统自身故障类错误**（`SYSTEM_BUSY(-2, "系统繁忙")`、`INTERNAL_ERROR("500")`、`UNMATCHED_CODE("STD-00001")`）；因用户造成的错误（请求非法/未登录/无权访问/资源不存在等 HTTP 4xx 语义）**不在系统码收录**，由业务/接入层自定义 `ResCode` 枚举；
-- 错误码规范：字符串码，模块前缀 + 数字（如 `"STD-00001"`）；错误码枚举同样实现 `Code` 字典接口。
-- 统一响应体 `Result` / 分页 `PageParameter`/`PageData` 的**归属待定**（standard4j 或 util4j）。
+- `SimpleResCode` —— 运行时动态码值（如从 `CODE|MESSAGE` 结构化消息解析后构造）；
+- 不提供 `UnLoginException`：未登录属于业务/接入层错误，由使用方自定义 `ResCode`；
+- `SystemResCode` —— 内置**系统级**错误码枚举：**只收录系统自身故障类错误**（`UNKNOWN`、`SYSTEM_BUSY(-2, 503)`、`INTERNAL_ERROR("500")`、`UNMATCHED_CODE("STD-00001")`、`CURRENCY_MISMATCH("STD-00002")`）；因用户造成的错误（请求非法/未登录/无权访问/资源不存在等 HTTP 4xx 语义）**不在系统码收录**，由业务/接入层自定义 `ResCode` 枚举；
+- 错误码规范：字符串码，模块前缀 + 数字（如 `"STD-00001"`）；错误码枚举同样实现 `Code` 字典接口；
+- 统一响应体 `Result` 与分页响应元数据 `PageMeta` 已落在 `result` 包：`PageMeta` 只含当前页、总页数、当前页大小、总记录数；**分页请求参数不放标准库**。
 
 ## 3. 命名标准（`entity`）
 
@@ -105,14 +131,16 @@ public interface ResCode {
 - `Genderable` —— 性别（类型绑定 `Gender` 枚举，非 String）
 - `BirthDateable` —— 出生日期（`LocalDate`）；年龄为推导字段（按周岁），不落存储
 - `Ethnicable` —— 民族（绑定 `EthnicGroup`）
-- `Certifiable` —— 证件类型（绑定 `IdCardType`）、证件号码、证件名称、发证机关、有效期起止
+- `Certifiable` —— 证件类型（绑定 `IdCardType`）、证件号码、证件名称、发证机关、有效期起止；描述**单本证件**，不是自然人基础字段（一个自然人可持有多本证件）
 - `Contactable` —— 手机号、座机、邮箱
-- `Addressable` —— 省/市/区县代码（绑定区划字典）+ 详址
+- `Addressable` —— 省/市/区县代码（`String`；区划数据量大且逐年变更，不在枚举中固化，见 §7）+ 详址
 - `Organizationable` —— 组织名称、统一社会信用代码、法定代表人
 
 硬规则：
 1. 接口可组合：自然人 = `Nameable + Genderable + BirthDateable + Certifiable + Contactable + Addressable + Auditable + ...`，按需拼装，规避抽象类单继承限制；
-2. 字段的 Java 类型直接绑定标准字典枚举（`Gender`/`IdCardType`/`EthnicGroup`/区划代码），码值合法性由类型系统保证；
+2. 字段的 Java 类型优先绑定标准字典枚举（`Gender`/`IdCardType`/`EthnicGroup`）；区划代码使用 `String`
+   （区划字典只定义契约、不内置数据，枚举无法承载 3000+ 且逐年变更的码表），码值合法性由使用方的
+   `AdministrativeDivisionRepository` 校验；
 3. getter/setter 命名即标准：跨项目同名字段同语义，序列化/映射天然对齐。
 
 ### 3.2 实体元数据标准（接口限定，getter/setter）
@@ -146,7 +174,7 @@ public interface Treeable {                           // 树形层级（行政�
 - `BirthDateable` 提供周岁推导：`ageOn(LocalDate)` / `age()` 返回 `OptionalInt`，规则为"未过生日不加岁"，2 月 29 日出生者平年按 2 月 28 日计；
 - `Certifiable` 提供 `certificateValidOn(LocalDate)`：起止日均有效，`validTo` 为空视为长期有效；
 - 统一字段命名（`createdAt/createdBy/...`），杜绝各项目各写一套；
-- **业务单号格式规范**：`前缀 + 日期 + 序列`（与错误码规范同族），单号前缀同样注册为标准字典。
+- **业务单号格式规范**：`前缀 + 日期 + 序列`（与错误码规范同族），单号前缀同样注册为标准字典；具体前缀字典与校验规则**待需求方确定**。
 
 ## 4. 校验器标准（`validate`）
 
@@ -167,8 +195,12 @@ public interface Validator<T> {
 | 组织机构代码（旧 9 位 + 校验位） | **GB 11714-1997** |
 | 国际电话号码模型（国家码 + 号码，格式规范） | **ITU-T E.164** |
 | 银行卡号（Luhn 算法 + BIN） | **ISO/IEC 7812** |
-| 中国手机号（11 位 + 号段合法性，与运营商字典联动） | 工信部号段表 |
+| 中国手机号（11 位 + 号段合法性） | 工信部号段表 |
 | 邮箱、车牌号、港澳台证件号格式 | 自定 |
+
+实现入口：`Validators`（`ID_CARD`、`UNIFIED_SOCIAL_CREDIT_CODE`、`ORGANIZATION_CODE`、
+`E164_PHONE`、`BANK_CARD`、`MOBILE_PHONE`、`EMAIL`、`LICENSE_PLATE`、`HONG_KONG_ID`、
+`MACAO_ID`、`TAIWAN_ID`）。校验器只判断与给原因，不做脱敏；失败原因不含错误码。
 
 ## 5. 金额标准（`money`）
 
@@ -217,36 +249,45 @@ public interface Validator<T> {
 | 学位 | **GB/T 6864-2003**：两层码，第一层 `1`名誉博士/`2`博士/`3`硕士/`4`学士，第二层 `01~40` 学科门类（12 门类）、`41~80` 专业学位（2003 文本 16 个：245/248/250、341-352、444）；2003 后新增学位（艺术学 213/313/413 等）暂不收录，按官方补充文件增补 |
 | 健康状况 | **不设字典**（无权威国标，且业务口径差异过大） |
 | 国籍/国家 | **ISO 3166-1** 全量 249 个正式分配的 alpha-2 码（`region` 包 `CountryOrRegion`，`human` 引用）+ alpha-3 别名码（`ofAlpha3*`）+ 电信区号 `idd`（ITU-T E.164 国家/地区码，`ofIdd*` 兼容 `86`/`+86`/`0086` 三种入参形态；`+1`/`+7` 多国共享码用 `ofIddAll` 返回全部命中；AQ/HM 无区号存空串）；中文译名取 CLDR-zh（简体），HK/MO 按数据集 TW 命名风格归一为"中国香港/中国澳门"；XK（科索沃）为用户自定义码暂不收录；译名与 GB/T 2659 官方译名可能存在个别差异，按官方数据校准 |
-| 证件类型 | **GA/T 2000.156-2016** 主码 + **JR/T 0160-2018**（金融 DM001）内置别名 + `certificateTypeCode` 关联证照目录（可空）+ 脱敏保留位数 |
+| 证件类型 | **GA/T 2000.156-2016** 主码 + **JR/T 0160-2018**（金融 DM001）内置别名（`ofFinancialCode*` 反查）+ 脱敏保留位数；证件类型与证照目录正交，不做字段关联 |
 | 运营商 | **不设字典**（携号转网后运营商归属不再稳定，且无权威国标；号码段判定属业务能力，由使用方实现） |
 | 行业 | **GB/T 4754** 国民经济行业分类——**只定义契约，不内置数据**：`Industry extends HierarchicalCode`（门类 A~T → 大类 2 位 → 中类 4 位 → 小类 6 位）+ `IndustryRepository`（三口径 + `parentOf`/`childrenOf`），谁使用谁实现 |
 | 职业 | **GB/T 6565** 职业分类——**只定义契约，不内置数据**：`Occupation extends HierarchicalCode` + `OccupationRepository`，谁使用谁实现 |
 
 ## 10. 脱敏规则接口（`sensitive`）
 
-接口在 standard4j，实现（含旧 `SensitiveUtils` 算法）在 sensitive4j：
+契约与默认算法在 standard4j，特殊算法可由 sensitive4j 通过 `Masker` SPI 覆盖：
 
 ```java
-public interface MaskRule extends Code {     // 规则标识 = 字典项，含掩码元数据
-    int sensitiveLeft();                     // 左侧保留字符数
-    int sensitiveRight();                    // 右侧保留字符数
-    default char maskChar() { return '*'; }  // 掩码字符
+public interface MaskRule extends Code {        // 规则标识 = 字典项，含脱敏元数据
+    int sensitiveLeft();                        // 敏感段左侧保留字符数
+    int sensitiveRight();                       // 敏感段右侧保留字符数
+    default char maskChar() { return '*'; }     // 掩码字符
+    default SensitiveSegment sensitiveSegment(String rawValue) {
+        return SensitiveSegment.whole(rawValue); // 默认整段敏感
+    }
+    default String maskedValue(String rawValue); // 只替换敏感段，段外原样保留
 }
-public interface Maskable {                  // 任意对象声明"我该怎么脱敏"
+public record SensitiveSegment(int start, int end) { } // 左闭右开区间
+public interface Maskable {                     // 任意对象声明"我该怎么脱敏"
     String rawValue();
-    MaskRule maskRule();                     // null = 不脱敏
-    default String maskedValue(Masker masker) { ... }  // 空值/null 规则/不支持 均原样返回
+    MaskRule maskRule();                        // null = 不脱敏
+    default String maskedValue(Masker masker);  // 空值/null 规则/不支持 均原样返回
 }
-public interface Masker {                    // SPI；standard4j 内置 no-op 兜底 Masker.NONE
+public interface Masker {                       // SPI；内置 STANDARD 与 NONE
     boolean supports(MaskRule rule);
     String mask(String rawValue, MaskRule rule);
 }
 ```
 
-- 规则元数据（保留位数/掩码字符）定义在 `MaskRule` 上，沿用旧 `IdCardType.sensitiveLeft/sensitiveRight` 模式；
-- 掩码字符默认 `*`；
-- 旧算法参考：身份证 6/4、手机号 3/4、中文姓名按长度（2 字掩 1，3 字以上首尾各留 1）；
-- 真实算法在 sensitive4j：standard4j 只带 `Masker.NONE`（原样返回），未装配实现时不会中断业务链路。
+- **先定位敏感数据段，再段内掩码**：非敏感段原样保留。典型例子是邮箱
+  `zhangsan@example.com`，只有 `@` 前的本地部分敏感，`@example.com` 不脱敏；
+- 段内规则：左侧保留 `sensitiveLeft` 个字符、右侧保留 `sensitiveRight` 个字符，
+  中间全部替换为 `maskChar()`；敏感段长度不足时至少掩码 1 个字符（2 字姓名 1/1 → `a*`）；
+- 掩码字符默认 `*`；旧算法参考：身份证 6/4、手机号 3/4、银行卡 4/4、姓名 1/1、邮箱 1/0；
+- `IdCardType` 直接实现 `MaskRule`，证件类型自带脱敏规则；`CommonMaskRule` 提供
+  身份证/手机号/银行卡/姓名/邮箱等常用规则；
+- `Masker.STANDARD` 使用规则默认算法；`Masker.NONE` 为 no-op 兜底，未装配实现时不会中断业务链路。
 
 ## 11. 从 commons-common 的借鉴清单
 
@@ -262,8 +303,9 @@ public interface Masker {                    // SPI；standard4j 内置 no-op �
 
 ## 12. 待定项
 
-- [ ] 统一响应体 `Result` 与分页模型的归属（standard4j 或 util4j）；
+- [x] 统一响应体 `Result` 与分页模型：已落在 standard4j `result` 包；分页请求参数不纳入标准库；
 - [ ] 证件类型代码：主码 GA/T 2000.156-2016（无 GB 国标），需持标准全文核对旧码值；
-- [ ] 证照目录（GB/T 36901）与 `CertificateType` 的取舍——概念待与需求方确认后再定（当前 `IdCardType` 已满足证件类型场景）；
-- [ ] 平台标准 / 平台应用标准的具体定义（待需求方澄清）；
+- [ ] 证照目录（GB/T 36901）与 `CertificateType` 的取舍——概念待与需求方确认后再定；证照与证件类型正交，一个自然人可持有多本证件；
+- [ ] 平台标准 / 平台应用标准的具体平台码值（契约与仓库接口已定义，数据由需求方提供）；
+- [ ] 业务单号格式规范（前缀 + 日期 + 序列）的具体前缀字典与校验规则——需求方暂未确定；
 - [ ] 日期/时间表述约定（存储时区、年龄周岁计算规范）——候选，未纳入范围。

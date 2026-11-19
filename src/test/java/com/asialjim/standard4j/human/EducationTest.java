@@ -43,7 +43,11 @@ class EducationTest {
                 () -> assertEquals(Education.TECHNICAL_SCHOOL_GRADUATED, Education.of("47")),
                 () -> assertEquals(Education.SENIOR_HIGH_GRADUATED, Education.of("61")),
                 () -> assertEquals(Education.JUNIOR_HIGH_GRADUATED, Education.of("71")),
-                () -> assertEquals(Education.PRIMARY_GRADUATED, Education.of("81"))
+                () -> assertEquals(Education.JUNIOR_HIGH_COMPLETED, Education.of("72")),
+                () -> assertEquals(Education.JUNIOR_HIGH_UNFINISHED, Education.of("73")),
+                () -> assertEquals(Education.PRIMARY_GRADUATED, Education.of("81")),
+                () -> assertEquals(Education.PRIMARY_COMPLETED, Education.of("82")),
+                () -> assertEquals(Education.PRIMARY_UNFINISHED, Education.of("83"))
         );
     }
 
@@ -65,7 +69,9 @@ class EducationTest {
                 () -> assertEquals(Education.UNDERGRAD_UNFINISHED, Education.of("23")),
                 () -> assertEquals(Education.COLLEGE_GRADUATED, Education.of("31")),
                 () -> assertEquals(Education.COLLEGE_COMPLETED, Education.of("32")),
-                () -> assertEquals(Education.COLLEGE_UNFINISHED, Education.of("33"))
+                () -> assertEquals(Education.COLLEGE_UNFINISHED, Education.of("33")),
+                () -> assertEquals(Education.JUNIOR_HIGH_COMPLETED, Education.of("72")),
+                () -> assertEquals(Education.PRIMARY_COMPLETED, Education.of("82"))
         );
     }
 }

@@ -19,13 +19,32 @@ package com.asialjim.standard4j.sensitive;
 /**
  * 脱敏执行器 SPI —— 由实现库（sensitive4j）或使用方提供具体算法。
  *
- * <p>本库只带 {@link #NONE}（原样返回）作为未装配实现时的兜底，
- * 避免因缺少实现导致业务链路中断。</p>
+ * <p>本库内置两个实现：</p>
+ * <ul>
+ *     <li>{@link #STANDARD}：按 {@link MaskRule#maskedValue(String)} 的默认算法执行
+ *         （先定位敏感段，再段内左右保留、中间掩码）；</li>
+ *     <li>{@link #NONE}：未装配实现时的 no-op 兜底，原样返回，避免业务链路中断。</li>
+ * </ul>
  *
  * @author <a href="mailto:asialjim@hotmail.com">Asial Jim</a>
  * @since 1.0.0
  */
 public interface Masker {
+
+    /**
+     * 标准实现：委托规则自身的默认算法
+     */
+    Masker STANDARD = new Masker() {
+        @Override
+        public boolean supports(MaskRule rule) {
+            return rule != null;
+        }
+
+        @Override
+        public String mask(String rawValue, MaskRule rule) {
+            return rule == null ? rawValue : rule.maskedValue(rawValue);
+        }
+    };
 
     /**
      * no-op 兜底实现：始终"支持"，但原样返回

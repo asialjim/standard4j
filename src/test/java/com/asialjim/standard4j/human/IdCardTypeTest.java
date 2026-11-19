@@ -76,7 +76,11 @@ class IdCardTypeTest {
                 () -> assertEquals(1, IdCardType.MILITARY_ID.getSensitiveLeft()),
                 () -> assertEquals(1, IdCardType.MILITARY_ID.getSensitiveRight()),
                 () -> assertEquals(3, IdCardType.HK_MO_PASS.getSensitiveLeft()),
-                () -> assertEquals(3, IdCardType.HK_MO_PASS.getSensitiveRight())
+                () -> assertEquals(3, IdCardType.HK_MO_PASS.getSensitiveRight()),
+                () -> assertEquals(6, IdCardType.RESIDENT_ID_CARD.sensitiveLeft()),
+                () -> assertEquals(4, IdCardType.RESIDENT_ID_CARD.sensitiveRight()),
+                () -> assertEquals("440304********0012",
+                        IdCardType.RESIDENT_ID_CARD.maskedValue("440304200006150012"))
         );
     }
 }

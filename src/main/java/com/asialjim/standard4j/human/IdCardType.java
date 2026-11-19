@@ -16,8 +16,10 @@
 
 package com.asialjim.standard4j.human;
 
-import com.asialjim.standard4j.code.Code;
 import com.asialjim.standard4j.code.Codes;
+import com.asialjim.standard4j.exception.BusinessException;
+import com.asialjim.standard4j.exception.SystemResCode;
+import com.asialjim.standard4j.sensitive.MaskRule;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -31,15 +33,15 @@ import java.util.Optional;
  * 内置 <b>JR/T 0160-2018</b>（金融行业 DM001 代码表）别名码 {@link #getFinancialCode()}，金融场景直接可用；
  * 其他行业标准码值可经别名映射外挂。</p>
  *
- * <p>每个证件类型自带脱敏保留位数（{@link #getSensitiveLeft()}/{@link #getSensitiveRight()}），
- * 供脱敏规则元数据使用；脱敏执行归敏感信息处理库。</p>
+ * <p>本枚举同时实现 {@link MaskRule}，证件号可直接按类型脱敏；保留位数见
+ * {@link #sensitiveLeft()}/{@link #sensitiveRight()}。</p>
  *
  * @author <a href="mailto:asialjim@hotmail.com">Asial Jim</a>
  * @since 1.0.0
  */
 @Getter
 @AllArgsConstructor
-public enum IdCardType implements Code {
+public enum IdCardType implements MaskRule {
 
     /** 未知/未提供（无标准码值，按本库约定取 "-"） */
     UNKNOWN("-", "未知", "Unknown", null, 0, 0),
@@ -115,6 +117,16 @@ public enum IdCardType implements Code {
         return this.label;
     }
 
+    @Override
+    public int sensitiveLeft() {
+        return this.sensitiveLeft;
+    }
+
+    @Override
+    public int sensitiveRight() {
+        return this.sensitiveRight;
+    }
+
     /**
      * UNKNOWN 项静态访问器
      *
@@ -152,5 +164,44 @@ public enum IdCardType implements Code {
      */
     public static IdCardType ofOrDefault(String code) {
         return Codes.ofOrDefault(values(), code, UNKNOWN);
+    }
+
+    /**
+     * 按 JR/T 0160-2018（金融 DM001）别名码反查证件类型
+     *
+     * @param financialCode 金融别名码（不区分大小写，容忍首尾空白）
+     * @return 命中返回 {@link Optional}；未命中/该标准未定义时返回 {@link Optional#empty()}
+     */
+    public static Optional<IdCardType> ofFinancialCodeNullable(String financialCode) {
+        if (financialCode == null || financialCode.isBlank())
+            return Optional.empty();
+        String alias = financialCode.trim();
+        for (IdCardType type : values()) {
+            if (type.financialCode != null && type.financialCode.equalsIgnoreCase(alias))
+                return Optional.of(type);
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * 严格按 JR/T 0160-2018 别名码反查；未命中抛 {@link BusinessException}
+     *
+     * @param financialCode 金融别名码
+     * @return {@link IdCardType}
+     */
+    public static IdCardType ofFinancialCode(String financialCode) {
+        return ofFinancialCodeNullable(financialCode)
+                .orElseThrow(() -> new BusinessException(SystemResCode.UNMATCHED_CODE,
+                        "未知的金融证件类型码: [" + financialCode + "]"));
+    }
+
+    /**
+     * 宽容按 JR/T 0160-2018 别名码反查；未命中返回 {@link #UNKNOWN}
+     *
+     * @param financialCode 金融别名码
+     * @return {@link IdCardType}
+     */
+    public static IdCardType ofFinancialCodeOrDefault(String financialCode) {
+        return ofFinancialCodeNullable(financialCode).orElse(UNKNOWN);
     }
 }

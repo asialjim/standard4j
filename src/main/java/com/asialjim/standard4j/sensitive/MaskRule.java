@@ -19,18 +19,21 @@ package com.asialjim.standard4j.sensitive;
 import com.asialjim.standard4j.code.Code;
 
 /**
- * 脱敏规则标识 —— 规则本身即字典项（实现 {@link Code}），并携带<b>保留位数元数据</b>。
+ * 脱敏规则标识 —— 规则本身即字典项（实现 {@link Code}），并携带<b>脱敏元数据与默认算法</b>。
  *
- * <p>本接口只定义"规则长什么样"，<b>不含任何脱敏算法</b>；算法由 {@link Masker} SPI 实现
- * （standard4j 只带 no-op 兜底，真实实现在 sensitive4j）。</p>
+ * <p>脱敏分两步：</p>
+ * <ol>
+ *     <li><b>定位敏感数据段</b>：{@link #sensitiveSegment(String)} 返回原始值中真正敏感
+ *         的字符区间；非敏感段（如邮箱的 {@code @domain}）原样保留；</li>
+ *     <li><b>段内掩码</b>：敏感段左侧保留 {@link #sensitiveLeft()} 个字符、右侧保留
+ *         {@link #sensitiveRight()} 个字符，中间全部替换为 {@link #maskChar()}。</li>
+ * </ol>
  *
- * <p>保留位数语义：</p>
- * <ul>
- *     <li>{@link #sensitiveLeft()} —— 左侧原样保留的字符数；</li>
- *     <li>{@link #sensitiveRight()} —— 右侧原样保留的字符数；</li>
- *     <li>中间部分替换为 {@link #maskChar()}。</li>
- * </ul>
- * <p>示例：身份证号规则 6/4 → {@code 440304********1234}；手机号规则 3/4 → {@code 138****5678}。</p>
+ * <p>示例：身份证号规则 6/4 → {@code 440304********1234}；手机号规则 3/4 →
+ * {@code 138****5678}；邮箱规则 1/0 → {@code z*******@example.com}。</p>
+ *
+ * <p>{@link #maskedValue(String)} 提供默认实现；需要特殊算法时由 {@link Masker} SPI
+ * 覆盖（实现库可放在 sensitive4j）。</p>
  *
  * @author <a href="mailto:asialjim@hotmail.com">Asial Jim</a>
  * @since 1.0.0
@@ -58,5 +61,47 @@ public interface MaskRule extends Code {
      */
     default char maskChar() {
         return '*';
+    }
+
+    /**
+     * 定位敏感数据段
+     *
+     * <p>默认整个值均为敏感段；邮箱等"部分敏感"场景覆盖本方法，例如返回
+     * {@code @} 之前的区间。</p>
+     *
+     * @param rawValue 原始值，可空
+     * @return {@link SensitiveSegment}；返回空段表示不脱敏
+     */
+    default SensitiveSegment sensitiveSegment(String rawValue) {
+        return SensitiveSegment.whole(rawValue);
+    }
+
+    /**
+     * 按本规则执行默认脱敏：仅替换敏感段，敏感段外原样保留。
+     *
+     * <p>为保证不泄露，敏感段长度不足时优先保证至少掩码 1 个字符：
+     * 例如长度 2、规则 1/1 时结果为 {@code a*}。</p>
+     *
+     * @param rawValue 原始值，可空
+     * @return 脱敏后的值；入参为 {@code null}/空串时原样返回
+     */
+    default String maskedValue(String rawValue) {
+        if (rawValue == null || rawValue.isEmpty())
+            return rawValue;
+        SensitiveSegment segment = this.sensitiveSegment(rawValue);
+        if (segment == null || segment.empty())
+            return rawValue;
+        int start = Math.min(segment.start(), rawValue.length());
+        int end = Math.min(segment.end(), rawValue.length());
+        int length = end - start;
+        if (length <= 0)
+            return rawValue;
+
+        int left = Math.max(0, Math.min(this.sensitiveLeft(), length - 1));
+        int right = Math.max(0, Math.min(this.sensitiveRight(), length - left - 1));
+        StringBuilder masked = new StringBuilder(rawValue);
+        for (int i = start + left; i < end - right; i++)
+            masked.setCharAt(i, this.maskChar());
+        return masked.toString();
     }
 }

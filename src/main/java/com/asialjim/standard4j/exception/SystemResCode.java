@@ -25,7 +25,7 @@ package com.asialjim.standard4j.exception;
  *
  * <p>编码规范（模块前缀 + 数字）首批示范：</p>
  * <ul>
- *     <li>系统故障沿用旧库惯例（{@code "-2"} 系统繁忙）与 HTTP 500 语义；</li>
+ *     <li>系统故障沿用旧库惯例（{@code "-2"} 系统繁忙，HTTP 503 语义）；</li>
  *     <li>本库自有错误码使用 {@code STD-} 前缀（如 {@code "STD-00001"}）。</li>
  * </ul>
  *
@@ -34,8 +34,11 @@ package com.asialjim.standard4j.exception;
  */
 public enum SystemResCode implements ResCode {
 
-    /** 系统繁忙（沿用旧库 SysBusy 码值 "-2"） */
-    SYSTEM_BUSY("-2", "系统繁忙", 400),
+    /** 未知错误（本库约定的宽容解析兜底项） */
+    UNKNOWN("STD-00000", "未知错误", 500),
+
+    /** 系统繁忙（沿用旧库 SysBusy 码值 "-2"，HTTP 503 语义） */
+    SYSTEM_BUSY("-2", "系统繁忙", 503),
 
     /** 系统内部错误（HTTP 500） */
     INTERNAL_ERROR("500", "系统内部错误", 500),
@@ -80,5 +83,14 @@ public enum SystemResCode implements ResCode {
     @Override
     public int status() {
         return this.status;
+    }
+
+    /**
+     * UNKNOWN 项静态访问器
+     *
+     * @return {@link #UNKNOWN}
+     */
+    public static SystemResCode unknown() {
+        return UNKNOWN;
     }
 }

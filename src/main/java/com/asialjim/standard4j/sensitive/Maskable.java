@@ -41,9 +41,11 @@ public interface Maskable {
     MaskRule maskRule();
 
     /**
-     * 按本对象的规则执行脱敏；规则为 {@code null}、原值为空或执行器不支持时**原样返回**
+     * 按本对象的规则执行脱敏；规则为 {@code null}、原值为空或执行器不支持时**原样返回**。
      *
-     * @param masker 脱敏执行器；传 {@code null} 等价于 {@link Masker#NONE}
+     * <p>{@code masker} 为 {@code null} 时使用 {@link Masker#STANDARD}。</p>
+     *
+     * @param masker 脱敏执行器
      * @return 脱敏后的值
      */
     default String maskedValue(Masker masker) {
@@ -51,7 +53,16 @@ public interface Maskable {
         MaskRule rule = maskRule();
         if (raw == null || raw.isEmpty() || rule == null)
             return raw;
-        Masker actual = masker == null ? Masker.NONE : masker;
+        Masker actual = masker == null ? Masker.STANDARD : masker;
         return actual.supports(rule) ? actual.mask(raw, rule) : raw;
+    }
+
+    /**
+     * 使用标准执行器脱敏
+     *
+     * @return 脱敏后的值
+     */
+    default String maskedValue() {
+        return maskedValue(Masker.STANDARD);
     }
 }

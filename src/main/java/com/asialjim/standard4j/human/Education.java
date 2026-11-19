@@ -143,6 +143,9 @@ public enum Education implements Code {
     /** 初中毕业（GB/T 4658: 71） */
     JUNIOR_HIGH_GRADUATED("71", "初中毕业"),
 
+    /** 初中结业（GB/T 4658: 72） */
+    JUNIOR_HIGH_COMPLETED("72", "初中结业"),
+
     /** 初中肄业（GB/T 4658: 73） */
     JUNIOR_HIGH_UNFINISHED("73", "初中肄业"),
 
@@ -151,6 +154,9 @@ public enum Education implements Code {
 
     /** 小学毕业（GB/T 4658: 81） */
     PRIMARY_GRADUATED("81", "小学毕业"),
+
+    /** 小学结业（GB/T 4658: 82） */
+    PRIMARY_COMPLETED("82", "小学结业"),
 
     /** 小学肄业（GB/T 4658: 83） */
     PRIMARY_UNFINISHED("83", "小学肄业"),
